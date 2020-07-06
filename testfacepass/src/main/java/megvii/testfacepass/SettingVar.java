@@ -1,6 +1,6 @@
 package megvii.testfacepass;
 
-import megvii.facepass.types.FacePassImageRotation;
+import mcv.facepass.types.FacePassImageRotation;
 
 /**
  * Created by wangzhiqiang on 2017/11/22.

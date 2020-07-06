@@ -82,33 +82,36 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import megvii.facepass.FacePassException;
-import megvii.facepass.FacePassHandler;
-import megvii.facepass.types.FacePassAddFaceResult;
-import megvii.facepass.types.FacePassConfig;
-import megvii.facepass.types.FacePassDetectionResult;
-import megvii.facepass.types.FacePassFace;
-import megvii.facepass.types.FacePassGroupSyncDetail;
-import megvii.facepass.types.FacePassImage;
-import megvii.facepass.types.FacePassImageRotation;
-import megvii.facepass.types.FacePassImageType;
-import megvii.facepass.types.FacePassModel;
-import megvii.facepass.types.FacePassPose;
-import megvii.facepass.types.FacePassRecognitionResult;
-import megvii.facepass.types.FacePassAgeGenderResult;
-import megvii.facepass.types.FacePassRecognitionResultType;
-import megvii.facepass.types.FacePassSyncResult;
+
+import mcv.facepass.FacePassException;
+import mcv.facepass.FacePassHandler;
+import mcv.facepass.types.FacePassAddFaceResult;
+import mcv.facepass.types.FacePassAgeGenderResult;
+import mcv.facepass.types.FacePassConfig;
+import mcv.facepass.types.FacePassDetectionResult;
+import mcv.facepass.types.FacePassFace;
+import mcv.facepass.types.FacePassGroupSyncDetail;
+import mcv.facepass.types.FacePassImage;
+import mcv.facepass.types.FacePassImageRotation;
+import mcv.facepass.types.FacePassImageType;
+import mcv.facepass.types.FacePassModel;
+import mcv.facepass.types.FacePassPose;
+import mcv.facepass.types.FacePassRecognitionResult;
+import mcv.facepass.types.FacePassRecognitionResultType;
+import mcv.facepass.types.FacePassSyncResult;
 import megvii.testfacepass.adapter.FaceTokenAdapter;
 import megvii.testfacepass.adapter.GroupNameAdapter;
 import megvii.testfacepass.camera.CameraManager;
 import megvii.testfacepass.camera.CameraPreview;
 import megvii.testfacepass.camera.CameraPreviewData;
 import megvii.testfacepass.camera.ComplexFrameHelper;
+import megvii.testfacepass.custom.CfgApp;
 import megvii.testfacepass.network.ByteRequest;
 import megvii.testfacepass.utils.FileUtil;
 
 
 public class MainActivity extends Activity implements CameraManager.CameraListener, View.OnClickListener {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private enum FacePassSDKMode {
         MODE_ONLINE,
@@ -309,7 +312,10 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         FacePassHandler.getAuth(authIP, apiKey, apiSecret);
         FacePassHandler.initSDK(getApplicationContext());
         Log.d("WJY", FacePassHandler.getVersion());
-
+        Log.d("WJY", "version:" + FacePassHandler.getVersion());
+        Log.d("WJY", "initSDK is available:" + FacePassHandler.isAvailable());
+        Log.d("WJY", "is Authorized:" + FacePassHandler.isAuthorized());
+        Log.d("WJY", "SDK_MODE:" + SDK_MODE);
     }
 
     private void initFaceHandler() {
@@ -324,53 +330,57 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         try {
                             /* 填入所需要的配置 */
                             config = new FacePassConfig();
-                            config.poseModel = FacePassModel.initModel(getApplicationContext().getAssets(), "pose.alfa.tiny.170515.bin");
-                            config.blurModel = FacePassModel.initModel(getApplicationContext().getAssets(), "blurness.v5.l2rsmall.bin");
-                            // rgb CPU 活体模型
-                            //config.livenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288CPU.rgb.20190630.bin");
-                            // rgb GPU 活体模型： GPU活体模型分两个，用于GPU加速的模型和CACHE，当使用CPU活体模型时，请传null，当使用GPU活体模型时，必须传入加速cache模型
-                            //config.livenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288GPU.rgb.20190630.bin");
-                            //config.livenessGPUCache = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288GPU.rgb.20190630.cache");
-                            //rgb-ir CPU活体模型
-                            config.rgbIrLivenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288CPU.rgbir.20190722.bin");
-                            // rgb-ir GPU活体模型
-                            //config.rgbIrLivenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288GPU.rgbir.20190731.bin");
-                            //config.livenessGPUCache = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.3288GPU.rgbir.20190731.cache");
+                            config.poseBlurModel = FacePassModel.initModel(getApplicationContext().getAssets(), "attr.pose_blur.align.av200.190630.bin");
 
-                            config.searchModel = FacePassModel.initModel(getApplicationContext().getAssets(), "feat.small.3288_255MFlops_int8_150ms.1core.20190625.bin");
-                            //config.searchModel = FacePassModel.initModel(getApplicationContext().getAssets(), "feat.small.3288_255MFlops_int8_160ms.1core.20190801.bin");
-                            config.detectModel = FacePassModel.initModel(getApplicationContext().getAssets(), "detector.retinanet.x14.f2h.190630_int8.bin");
-                            config.detectRectModel = FacePassModel.initModel(getApplicationContext().getAssets(), "detector_rect.retinanet.x14.f2h.190630_int8.bin");
-                            config.landmarkModel = FacePassModel.initModel(getApplicationContext().getAssets(), "lmk.rect_score.vgg.12M.20190121_81.bin");
+                            //单目使用CPU rgb活体模型
+//                            config.livenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.CPU.rgb.int8.D.bin");
+                            //双目使用CPU rgbir活体模型
+                            config.rgbIrLivenessModel = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.CPU.rgbir.int8.D.bin");
+                            //当单目或者双目有一个使用GPU活体模型时，请设置livenessGPUCache
+                            //config.livenessGPUCache = FacePassModel.initModel(getApplicationContext().getAssets(), "liveness.GPU.AlgoPolicy.D.cache");
 
-                            config.smileModel = FacePassModel.initModel(getApplicationContext().getAssets(), "attr.blur.align.gray.general.mgf29.0.1.1.181229.bin");
-                            config.ageGenderModel = FacePassModel.initModel(getApplicationContext().getAssets(), "age_gender.v2.bin");
+                            config.searchModel = FacePassModel.initModel(getApplicationContext().getAssets(), "feat2.arm.G.v1.0_1core.bin");
+                            config.detectModel = FacePassModel.initModel(getApplicationContext().getAssets(), "detector.arm.D.bin");
+                            config.detectRectModel = FacePassModel.initModel(getApplicationContext().getAssets(), "detector_rect.arm.D.bin");
+                            config.landmarkModel = FacePassModel.initModel(getApplicationContext().getAssets(), "pf.lmk.arm.D.bin");
 
+                            config.mouthOccAttributeModel = FacePassModel.initModel(getApplicationContext().getAssets(), "attribute.mouth.occ.gray.12M.190930.bin");
+                            //config.smileModel = FacePassModel.initModel(getApplicationContext().getAssets(), "attr.smile.mgf29.0.1.1.181229.bin");
+                            //config.ageGenderModel = FacePassModel.initModel(getApplicationContext().getAssets(), "attr.age_gender.surveillance.nnie.av200.0.1.0.190630.bin");
+                            //config.occlusionFilterModel = FacePassModel.initModel(getApplicationContext().getAssets(), "occlusion.all_attr_configurable.occ.190816.bin");
                             //如果不需要表情和年龄性别功能，smileModel和ageGenderModel可以为null
                             //config.smileModel = null;
                             //config.ageGenderModel = null;
 
-                            config.searchThreshold = 75f;
-                            //config.livenessThreshold = 70f;  //rgb liveness
-                            config.livenessThreshold = 40f;  //rgb-ir liveness
-                            config.livenessEnabled = false;
-                            config.rgbIrLivenessEnabled = true;
+                            //config.occlusionFilterEnabled = true;    //打开戴口罩检测时，将遮挡模式关闭
+                            config.mouthOccAttributeEnabled = true;    //打开戴口罩检测开关
+                            config.searchThreshold = 71f;              //未带口罩时，识别使用的阈值
+                            config.searchExtThreshold = 64.71f;        //带口罩时，识别使用的阈值
+                            config.livenessThreshold = 60f;            //活体阈值
+                            config.livenessEnabled = false;            //关闭活体 红外活体开关与活体开关，是两个独立的功能，同时打开，SDK只会使用一种活体算法，优先使用红外活体检测
+                            config.rgbIrLivenessEnabled = true;        //打开红外活体功能
+
                             ageGenderEnabledGlobal = (config.ageGenderModel != null);
-                            config.faceMinThreshold = 100;
-                            config.poseThreshold = new FacePassPose(30f, 30f, 30f);
-                            config.blurThreshold = 0.2f;
+                            config.faceMinThreshold = 100;             //最小人脸尺寸100*100
+                            config.poseThreshold = new FacePassPose(30f, 30f, 30f);  //旋转角度、垂直角度、水平角度
+                            config.blurThreshold = 0.8f;               //模糊阈值
                             config.lowBrightnessThreshold = 70f;
-                            config.highBrightnessThreshold = 210f;
-                            config.brightnessSTDThreshold = 60f;
-                            config.retryCount = 2;
-                            config.smileEnabled = false;
-                            config.maxFaceEnabled = true;
+                            config.highBrightnessThreshold = 210f;     //人脸平均照度阈值范围
+                            config.brightnessSTDThreshold = 80f;       //人脸照度标准差阈值
+                            config.retryCount = 10;                    //重试次数
+                            config.smileEnabled = false;               //关闭微笑模型检测
+                            config.maxFaceEnabled = true;              //打开最大人脸检测 使能最大人脸，如果同一帧数据中，检测到多个人脸框，只有最大的人脸才会送去识别
 
                             config.rotation = cameraRotation;
                             config.fileRootPath = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
 
                             /* 创建SDK实例 */
                             mFacePassHandler = new FacePassHandler(config);
+
+                            FacePassConfig addFaceConfig = mFacePassHandler.getAddFaceConfig();
+                            addFaceConfig.blurThreshold = 0.8f;
+                            addFaceConfig.faceMinThreshold = 100;
+                            mFacePassHandler.setAddFaceConfig(addFaceConfig);
 
                             checkGroup();
                         } catch (FacePassException e) {
@@ -397,8 +407,8 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         initToast();
         /* 打开相机 */
         if (hasPermission()) {
-            manager.open(getWindowManager(), false, cameraWidth, cameraHeight);
-            mIRCameraManager.open(getWindowManager(), true, cameraWidth, cameraHeight);
+            manager.open(getWindowManager(), false, cameraWidth, cameraHeight);  //RGB  rk30sdk back:IR
+            mIRCameraManager.open(getWindowManager(), true, cameraWidth, cameraHeight);  //IR rk30sdk front:IR
         }
         adaptFrameLayout();
         super.onResume();
@@ -447,7 +457,6 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         @Override
         public void run() {
             while (!isInterrupt) {
-
                 Pair<CameraPreviewData, CameraPreviewData> framePair;
                 try {
                     framePair = ComplexFrameHelper.takeComplexFrame();
@@ -460,9 +469,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 }
                 /* 将相机预览帧转成SDK算法所需帧的格式 FacePassImage */
                 long startTime = System.currentTimeMillis(); //起始时间
-
                 FacePassImage image;
                 try {
+                    Log.d("FeedFrameThread", "cameraRotation：" + cameraRotation);
                     image = new FacePassImage(framePair.first.nv21Data, framePair.first.width, framePair.first.height, cameraRotation, FacePassImageType.NV21);
                 } catch (FacePassException e) {
                     e.printStackTrace();
@@ -479,6 +488,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 }
 
                 if (detectionResult == null || detectionResult.faceList.length == 0) {
+                    Log.d("FeedFrameThread", "feedFrame failed!");
                     /* 当前帧没有检出人脸 */
                     runOnUiThread(new Runnable() {
                         @Override
@@ -488,6 +498,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         }
                     });
                 } else {
+                    Log.d("FeedFrameThread", "feedFrame success!");
                     /* 将识别到的人脸在预览界面中圈出，并在上方显示人脸位置及角度信息 */
                     final FacePassFace[] bufferFaceList = detectionResult.faceList;
                     runOnUiThread(new Runnable() {
@@ -499,18 +510,24 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 }
 
                 if (detectionResult != null && detectionResult.message.length != 0) {
+                    Log.d("FeedFrameThread", "=======1");
                     try {
                         FacePassImage irImage = new FacePassImage(framePair.second.nv21Data, framePair.second.width, framePair.second.height, cameraRotation, FacePassImageType.NV21);
                         detectionResult = mFacePassHandler.IRfilter(irImage, detectionResult);
                         if (detectionResult.message.length == 0) {
+                            Log.d("FeedFrameThread", "IRfilter success!");
                             for (FacePassFace face : detectionResult.faceList) {
                                 mFacePassHandler.decodeResponseVirtual(face.trackId);
                                 mFacePassHandler.resetMessage(face.trackId);
                             }
+                        } else {
+                            Log.d("FeedFrameThread", "IRfilter failed!");
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                } else {
+//                    Log.d(TAG, "message failed!");
                 }
                 if (SDK_MODE == FacePassSDKMode.MODE_ONLINE) {
                     /*抓拍版模式*/
@@ -640,6 +657,8 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                                     showRecognizeResult(result.trackId, result.detail.searchScore, result.detail.livenessScore, !TextUtils.isEmpty(faceToken), ageGenderResult[idx].age, ageGenderResult[idx].gender);
                                 }
                             }
+                        } else {
+                            Log.d("RecognizeThread", "recognize failed!");
                         }
                     }
                 } catch (InterruptedException e) {
@@ -759,19 +778,21 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         } else {
             cameraRotation = FacePassImageRotation.DEG270;
         }
-        Log.i(DEBUG_TAG, "cameraRation: " + cameraRotation);
-        cameraFacingFront = true;
+        Log.i(TAG, "cameraRation1: " + cameraRotation);  //90
+        cameraFacingFront = false;  //视美泰rk3288主板 front:IR, back:RGB
         SharedPreferences preferences = getSharedPreferences(SettingVar.SharedPrefrence, Context.MODE_PRIVATE);
         SettingVar.isSettingAvailable = preferences.getBoolean("isSettingAvailable", SettingVar.isSettingAvailable);
         SettingVar.isCross = preferences.getBoolean("isCross", SettingVar.isCross);
         SettingVar.faceRotation = preferences.getInt("faceRotation", SettingVar.faceRotation);
         SettingVar.cameraPreviewRotation = preferences.getInt("cameraPreviewRotation", SettingVar.cameraPreviewRotation);
         SettingVar.cameraFacingFront = preferences.getBoolean("cameraFacingFront", SettingVar.cameraFacingFront);
-        if (SettingVar.isSettingAvailable) {
-            cameraRotation = SettingVar.faceRotation;
-            cameraFacingFront = SettingVar.cameraFacingFront;
+        if (!CfgApp.isSmdt()) {  //视美泰rk3288主板
+            if (SettingVar.isSettingAvailable) {
+                cameraRotation = SettingVar.faceRotation;
+                cameraFacingFront = SettingVar.cameraFacingFront;
+            }
         }
-
+        Log.i(TAG, "cameraRation2: " + cameraRotation);  //90
 
         Log.i("orientation", String.valueOf(windowRotation));
         final int mCurrentOrientation = getResources().getConfiguration().orientation;
@@ -1462,6 +1483,12 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
                         }
                     }
+                    Log.e("addface", "ret:" + result.result + ",blur:" + result.blur + ",brightness:" + result.brightness + ",deviation:" + result.deviation + ",pitch:" + result.pose.pitch
+                            + ",roll:" + result.pose.roll + ",yaw:" + result.pose.yaw + ",left:" + result.facePassRect.left + ",right:" + result.facePassRect.right
+                            + ",top:" + result.facePassRect.top + ",bottom:" + result.facePassRect.bottom);
+                    int width = result.facePassRect.right - result.facePassRect.left;
+                    int height = result.facePassRect.bottom - result.facePassRect.top;
+                    Log.e("addface", "face:" + width + "x" + height);
                 } catch (FacePassException e) {
                     e.printStackTrace();
                     toast(e.getMessage());

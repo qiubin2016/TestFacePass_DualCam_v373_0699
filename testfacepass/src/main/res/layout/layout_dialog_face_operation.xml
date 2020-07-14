@@ -146,6 +146,35 @@
 
     </RelativeLayout>
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="2dp">
+
+        <Button
+            android:id="@+id/btn_import"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:background="@drawable/shape_btn_bg_blue"
+            android:text="搜索SD卡，并导入数据"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/et_group_name1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/btn_import"
+            android:layout_alignTop="@id/btn_import"
+            android:layout_toLeftOf="@id/btn_import"
+            android:background="@drawable/shape_bg_rect"
+            android:focusable="true"
+            android:singleLine="true"
+            android:hint="......" />
+
+    </RelativeLayout>
+
     <ListView
         android:id="@+id/lv_group_info"
         android:layout_width="match_parent"

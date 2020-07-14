@@ -106,6 +106,9 @@ import megvii.testfacepass.camera.CameraPreview;
 import megvii.testfacepass.camera.CameraPreviewData;
 import megvii.testfacepass.camera.ComplexFrameHelper;
 import megvii.testfacepass.custom.CfgApp;
+import megvii.testfacepass.importmanager.BatchImportActivity;
+import megvii.testfacepass.importmanager.ImportFileManager;
+import megvii.testfacepass.importmanager.ToastUtils;
 import megvii.testfacepass.network.ByteRequest;
 import megvii.testfacepass.utils.FileUtil;
 
@@ -156,7 +159,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
 
     /* SDK 实例对象 */
-    FacePassHandler mFacePassHandler;
+    public static FacePassHandler mFacePassHandler;
 
     /* 相机实例 */
     private CameraManager manager;
@@ -196,8 +199,8 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
      */
     private int cameraRotation;
 
-    private static final int cameraWidth = 1280;
-    private static final int cameraHeight = 720;
+    private static final int cameraWidth = 640;//640;//1280;
+    private static final int cameraHeight = 480;//480;//720;
 
     private int mSecretNumber = 0;
     private static final long CLICK_INTERVAL = 600;
@@ -246,6 +249,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
     private Button mSDKModeBtn;
     int mId = 0;
+
+    private long mStartTime = 0;
+    private boolean mTimeLock = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -367,7 +373,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             config.lowBrightnessThreshold = 70f;
                             config.highBrightnessThreshold = 210f;     //人脸平均照度阈值范围
                             config.brightnessSTDThreshold = 80f;       //人脸照度标准差阈值
-                            config.retryCount = 10;                    //重试次数
+                            config.retryCount = 2;                    //重试次数
                             config.smileEnabled = false;               //关闭微笑模型检测
                             config.maxFaceEnabled = true;              //打开最大人脸检测 使能最大人脸，如果同一帧数据中，检测到多个人脸框，只有最大的人脸才会送去识别
 
@@ -469,6 +475,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 }
                 /* 将相机预览帧转成SDK算法所需帧的格式 FacePassImage */
                 long startTime = System.currentTimeMillis(); //起始时间
+                if (!mTimeLock) {
+                    mStartTime = startTime;
+                }
                 FacePassImage image;
                 try {
                     Log.d("FeedFrameThread", "cameraRotation：" + cameraRotation);
@@ -593,6 +602,8 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
 
                         mDetectResultQueue.offer(detectionResult.message);
+                        mTimeLock = true;  //锁定mStartTime，直到recognize完成
+                        Log.i("]time", "mDetectResultQueue.offer");
                     }
                 }
                 long endTime = System.currentTimeMillis(); //结束时间
@@ -645,6 +656,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         FacePassRecognitionResult[] recognizeResult = mFacePassHandler.recognize(group_name, detectionResult);
 
                         if (recognizeResult != null && recognizeResult.length > 0) {
+                            long endTime = System.currentTimeMillis(); //结束时间
+                            long runTime = endTime - mStartTime;
+                            Log.i("]time", String.format("recognize %d ms", runTime));
                             for (FacePassRecognitionResult result : recognizeResult) {
                                 String faceToken = new String(result.faceToken);
                                 if (FacePassRecognitionResultType.RECOG_OK == result.facePassRecognitionResultType) {
@@ -658,7 +672,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                                 }
                             }
                         } else {
-                            Log.d("RecognizeThread", "recognize failed!");
+                            Log.d("c", "recognize failed!");
                         }
                     }
                 } catch (InterruptedException e) {
@@ -666,6 +680,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 } catch (FacePassException e) {
                     e.printStackTrace();
                 }
+                mTimeLock = false;
             }
         }
 
@@ -1413,6 +1428,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         Button deleteFaceBtn = (Button) view.findViewById(R.id.btn_delete_face);
         Button bindGroupFaceTokenBtn = (Button) view.findViewById(R.id.btn_bind_group);
         Button getGroupInfoBtn = (Button) view.findViewById(R.id.btn_get_group_info);
+        Button importBtn = (Button) view.findViewById(R.id.btn_import);    //批量导入按钮
 
         ImageView closeIv = (ImageView) view.findViewById(R.id.iv_close);
 
@@ -1622,6 +1638,13 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                     toast("get local group info error!");
                 }
 
+            }
+        });
+
+        importBtn.setOnClickListener(new View.OnClickListener() {  //批量导入
+            @Override
+            public void onClick(View v) {
+            startActivity(new Intent(MainActivity.this, BatchImportActivity.class));
             }
         });
 

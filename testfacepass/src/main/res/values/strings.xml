@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">TestFacePass</string>
+
+    <string name="import_tip">1.在SD卡根目录，创建一个文件夹，命名为Face-Import。
+    \n\n2.将需要导入的每个图片，文件名示例为username-group.jpg，即用户名-用户组名的文件命名方式。
+    \n\n3.新建一个压缩文件，命名为Face.zip，将人脸图片全部放到该zip下，并将zip文件放置到Face-Import目录下。
+    \n\n4.点击下方按钮开始解压操作，批量注册时间较长，请耐心等待，不要关闭此窗口。</string>
 </resources>

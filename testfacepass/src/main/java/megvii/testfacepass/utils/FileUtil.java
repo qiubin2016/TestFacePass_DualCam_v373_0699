@@ -14,7 +14,6 @@ import android.provider.MediaStore;
 
 public class FileUtil {
 
-
     //兼容 sdk>=19 版本 图片选择获取路径问题
     public static String getPath(final Context context, final Uri uri) {
         // DocumentProvider

@@ -18,7 +18,6 @@ public class LogUtils {
             return -1;
         }
     }
-
     public static int d(String tag, String msg) {
         if (isDebug) {
             return Log.d(tag, msg);

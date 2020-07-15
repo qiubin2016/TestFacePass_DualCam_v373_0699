@@ -238,6 +238,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     private ImageView mSyncGroupBtn;
     private AlertDialog mSyncGroupDialog;
 
+    private ImageView mImportBtn;
     private ImageView mFaceOperationBtn;
     /*图片缓存*/
     private FaceImageCache mImageCache;
@@ -421,7 +422,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     }
 
 
-    private void checkGroup() {
+    private void checkGroup() {  //检查底库是否存在
         if (mFacePassHandler == null) {
             return;
         }
@@ -822,6 +823,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         mSyncGroupBtn = (ImageView) findViewById(R.id.btn_group_name);
         mSyncGroupBtn.setOnClickListener(this);
 
+        mImportBtn = (ImageView) findViewById(R.id.btn_import);
+        mImportBtn.setOnClickListener(this);
+
         mFaceOperationBtn = (ImageView) findViewById(R.id.btn_face_operation);
         mFaceOperationBtn.setOnClickListener(this);
 
@@ -1113,6 +1117,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
             case R.id.btn_face_operation:
                 showAddFaceDialog();
                 break;
+            case R.id.btn_import:
+                startActivity(new Intent(MainActivity.this, BatchImportActivity.class));  //启动导入界面
+                break;
         }
     }
 
@@ -1246,7 +1253,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
         obtainGroupsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
+            public void onClick(View v) {  //查询出所有底库，UI显示出来
                 if (mFacePassHandler == null) {
                     toast("FacePassHandle is null ! ");
                     return;
@@ -1266,7 +1273,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
         createGroupBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
+            public void onClick(View v) {  //创建底库
                 if (mFacePassHandler == null) {
                     toast("FacePassHandle is null ! ");
                     return;

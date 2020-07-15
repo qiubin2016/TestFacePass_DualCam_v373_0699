@@ -2,6 +2,7 @@ package megvii.testfacepass.importmanager;
 
 import android.graphics.Bitmap;
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -230,4 +231,37 @@ public class FileUtils {
         return result;
     }
 
+    /**
+     * @Description 得到文件所在路径（即全路径去掉完整文件名）
+     * @param filepath 文件全路径名称，like mnt/sda/XX.xx
+     * @return 根路径，like mnt/sda
+     */
+    public static String getPathFromFilepath(final String filepath) {
+        int pos = filepath.lastIndexOf('/');
+        if (pos != -1) {
+            return filepath.substring(0, pos);
+        }
+        return "";
+    }
+    /**
+     * @Description 重新整合路径，将路径一和路径二通过'/'连接起来得到新路径
+     * @param path1 路径一
+     * @param path2 路径二
+     * @return 新路径
+     */
+    public static String makePath(final String path1, final String path2) {
+        if (path1.endsWith(File.separator)) {
+            return path1 + path2;
+        }
+        return path1 + File.separator + path2;
+    }
+
+    //获取后缀名
+    public static String getSuffix(final String filename) {
+        int pos = filename.lastIndexOf('.');
+        if (-1 != pos) {
+            return filename.substring(pos);
+        }
+        return "";
+    }
 }

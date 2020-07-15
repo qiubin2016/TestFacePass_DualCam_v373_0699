@@ -2,6 +2,10 @@ package megvii.testfacepass.importmanager;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
+import android.text.format.DateFormat;
+import android.util.Log;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
@@ -9,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import megvii.testfacepass.MainActivity;
+
 
 /**
  * 导入相关管理类
@@ -29,6 +34,9 @@ public class ImportFileManager {
     private int mSuccessCount;
     private int mFailCount;
 
+    private final String GROUP_NAME = "facepass";
+    private final String DELIMITER = "-";
+
     private static class HolderClass {
         private static final ImportFileManager instance = new ImportFileManager();
     }
@@ -42,6 +50,7 @@ public class ImportFileManager {
         if (mExecutorService == null) {
             mExecutorService = Executors.newSingleThreadExecutor();
         }
+        LogUtils.setIsDebug(true);
     }
 
     public void setOnImportListener(OnImportListener importListener) {
@@ -54,6 +63,7 @@ public class ImportFileManager {
     public void batchImport() {
         // 获取导入目录 /sdcard/Face-Import
         File batchFaceDir = FileUtils.getBatchImportDirectory();
+        LogUtils.i(TAG, "batchFaceDir:" + batchFaceDir);
         // 遍历该目录下的所有文件
         String[] files = batchFaceDir.list();
         if (files == null || files.length == 0) {
@@ -117,6 +127,7 @@ public class ImportFileManager {
 
                     // 解压成功之后再次遍历该目录是不是存在文件
                     File batchPicDir = FileUtils.getBatchImportDirectory();
+                    LogUtils.i(TAG, "dir:" + batchPicDir);
                     File[] files = batchPicDir.listFiles();
 
                     // 如果该目录下没有文件，则提示获取图片失败
@@ -141,13 +152,9 @@ public class ImportFileManager {
                         mImportListener.showProgressView();
                     }
 
-                    //删除地库
-                    LogUtils.i(TAG, "clearAllGroupsAndFaces begin");
-                    MainActivity.mFacePassHandler.clearAllGroupsAndFaces();
-                    LogUtils.i(TAG, "clearAllGroupsAndFaces end");
-
                     mTotalCount = picFiles.length;
 
+                    int renameCount = 0;  //重命名文件的计数器
                     for (int i = 0; i < picFiles.length; i++) {
                         if (!mIsNeedImport) {
                             break;
@@ -165,20 +172,54 @@ public class ImportFileManager {
                                     ((float) mFinishCount / (float) mTotalCount));
                             continue;
                         }
-
-                        // 获取不带后缀的图片名
-                        String picNameNoEx = FileUtils.getFileNameNoEx(picName);
-                        // 通过既定的图片名格式，按照“-”分割，获取组名和用户名
-                        String[] picNames = picNameNoEx.split("-");
-                        // 如果分割失败，则该图片命名不满足要求
-                        if (picNames.length != 2) {
-                            LogUtils.e(TAG, "图片命名格式不符合要求");
-                            mFinishCount++;
-                            mFailCount++;
-                            continue;
+                        //判断文件名是否符合规则 文件名中是否有"facepass-"
+                        if (-1 == picName.indexOf(GROUP_NAME + DELIMITER)) {
+                            //更改文件名
+                            String oldPath = FileUtils.getPathFromFilepath(picFiles[i].getPath());  //获取当前绝对路径
+                            String fileSuffix = FileUtils.getSuffix(picName);  //获取图片后缀，".jpg"/".png"
+                            Log.i(TAG, "filename:" + picName + ",file path:" + picFiles[i].getPath() + "oldPath:" + oldPath);
+                            Log.i(TAG, "suffix:" + FileUtils.getSuffix(picName));
+                            //新文件名：group name + yyyyMMddHHmmss + 00001 + 图片后缀；例如：facepass-2020071509412500001.jpg
+                            String newFileName = GROUP_NAME + DELIMITER + getTimestampName() + String.format("%05d", renameCount) + fileSuffix;
+                            String newPath = FileUtils.makePath(oldPath, newFileName);  //拼接当前绝对路径 + 文件名
+                            Log.i(TAG, "new filename:" + newFileName + ",path:" + newPath);
+                            boolean ret1 = picFiles[i].renameTo(new File(newPath));
+                            picName = picFiles[i].getName();
+                            Log.i(TAG, "filename:" + picName + ",ret:" + ret1);
+                            if (ret1) {  //重命名成功
+                                renameCount++;
+                            } else {
+                                LogUtils.i(TAG, "图片重命名失败");
+                                mFinishCount++;
+                                mFailCount++;
+                                // 更新进度
+                                updateProgress(mFinishCount, mSuccessCount, mFailCount,
+                                        ((float) mFinishCount / (float) mTotalCount));
+                                continue;
+                            }
+                        } else {
+//                            LogUtils.i(TAG, "图片不需要重命名");
+//                            mFinishCount++;
+//                            mFailCount++;
+//                            // 更新进度
+//                            updateProgress(mFinishCount, mSuccessCount, mFailCount,
+//                                    ((float) mFinishCount / (float) mTotalCount));
+//                            continue;
                         }
-                        String groupName = picNames[1];   // 组名
-                        String userName = picNames[0];    // 用户名
+
+//                        // 获取不带后缀的图片名
+//                        String picNameNoEx = FileUtils.getFileNameNoEx(picName);
+//                        // 通过既定的图片名格式，按照“-”分割，获取组名和用户名
+//                        String[] picNames = picNameNoEx.split("-");
+//                        // 如果分割失败，则该图片命名不满足要求
+//                        if (picNames.length != 2) {
+//                            LogUtils.e(TAG, "图片命名格式不符合要求");
+//                            mFinishCount++;
+//                            mFailCount++;
+//                            continue;
+//                        }
+//                        String groupName = picNames[1];   // 组名
+//                        String userName = picNames[0];    // 用户名
 
                         boolean success = false;
 
@@ -207,11 +248,11 @@ public class ImportFileManager {
 //                        }
 
                         // 根据图片的路径将图片转成Bitmap
-                        Bitmap bitmap = BitmapFactory.decodeFile(picFiles[i].getAbsolutePath());
-
-                        if (bitmap != null) {
-                            byte[] bytes = new byte[512];
-                            float ret = -1;
+//                        Bitmap bitmap = BitmapFactory.decodeFile(picFiles[i].getAbsolutePath());
+//
+//                        if (bitmap != null) {
+//                            byte[] bytes = new byte[512];
+//                            float ret = -1;
                             // 走人脸SDK接口，通过人脸检测、特征提取拿到人脸特征值
 //                            ret = FaceApi.getInstance().getFeature(bitmap, bytes,
 //                                    BDFaceSDKCommon.FeatureType.BDFACE_FEATURE_TYPE_LIVE_PHOTO);
@@ -244,15 +285,15 @@ public class ImportFileManager {
 //                            } else {
 //                                LogUtils.e(TAG, picName + "：未检测到人脸");
 //                            }
-                            success = true;
-                            // 图片回收
-                            if (!bitmap.isRecycled()) {
-                                bitmap.recycle();
-                            }
-                        } else {
-                            LogUtils.e(TAG, picName + "：该图片转成Bitmap失败");
-                        }
+//                            // 图片回收
+//                            if (!bitmap.isRecycled()) {
+//                                bitmap.recycle();
+//                            }
+//                        } else {
+//                            LogUtils.e(TAG, picName + "：该图片转成Bitmap失败");
+//                        }
 
+                        success = true;
                         // 判断成功与否
                         if (success) {
                             mSuccessCount++;
@@ -300,5 +341,13 @@ public class ImportFileManager {
         if (mExecutorService != null) {
             mExecutorService = null;
         }
+    }
+
+    private String getTimestampName() {
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+        Calendar calendar = Calendar.getInstance();
+        String dateName = df.format(calendar.getTime());
+
+        return dateName;
     }
 }

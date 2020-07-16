@@ -1,6 +1,8 @@
 package megvii.testfacepass.importmanager;
 
 import android.graphics.Bitmap;
+import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
 import android.os.Environment;
 import android.util.Log;
 
@@ -12,6 +14,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+
+import megvii.testfacepass.utils.FileUtil;
 
 /**
  * author : shangrong
@@ -106,17 +110,25 @@ public class FileUtils {
      * 获取导入图片成功的目录信息
      */
     public static File getBatchImportSuccessDirectory() {
+        return getBatchImportDirectory("Success-Import");
+    }
+    /**
+     * 获取导入图片失败的目录信息
+     */
+    public static File getBatchImportFailedDirectory() {
+        return getBatchImportDirectory("Failed-Import");
+    }
+    public static File getBatchImportDirectory(String fileName) {
         File sdRootFile = getSDRootFile();
         File file = null;
         if (sdRootFile != null && sdRootFile.exists()) {
-            file = new File(sdRootFile, "Success-Import");
+            file = new File(sdRootFile, fileName);
             if (!file.exists()) {
                 file.mkdirs();
             }
         }
         return file;
     }
-
     /**
      * 判断文件是否存在
      */
@@ -263,5 +275,13 @@ public class FileUtils {
             return filename.substring(pos);
         }
         return "";
+    }
+
+    public static String getTimestampName() {
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+        Calendar calendar = Calendar.getInstance();
+        String dateName = df.format(calendar.getTime());
+
+        return dateName;
     }
 }

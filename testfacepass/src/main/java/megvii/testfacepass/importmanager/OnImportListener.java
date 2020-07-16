@@ -13,7 +13,11 @@ public interface OnImportListener {
 
     void onImporting(int finishCount, int successCount, int failureCount, float progress);
 
+    void onImporting(int finishCount, int successCount, int failureCount, int totalCount, float progress);
+
     void endImport(int finishCount, int successCount, int failureCount);
+
+    void endImport(int finishCount, int successCount, int failureCount, int totalCount);
 
     void showToastMessage(String message);
 }

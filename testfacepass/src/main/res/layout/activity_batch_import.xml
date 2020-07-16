@@ -92,7 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_below="@id/text_progress_title"
-            android:layout_marginTop="50dp" />
+            android:layout_marginTop="50dp"/>
 
         <TextView
             android:id="@+id/text_import_finish"
@@ -101,7 +101,8 @@
             android:layout_below="@id/progress_bar"
             android:layout_marginTop="20dp"
             android:text="已处理：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20dp" />
 
         <TextView
             android:id="@+id/text_import_success"
@@ -109,7 +110,8 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/text_import_finish"
             android:text="导入成功：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20dp" />
 
         <TextView
             android:id="@+id/text_import_failure"
@@ -117,7 +119,17 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/text_import_success"
             android:text="导入失败：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20dp" />
+
+        <TextView
+            android:id="@+id/text_import_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/text_import_failure"
+            android:text="总数：0"
+            android:textColor="@color/black"
+            android:textSize="20dp" />
 
     </RelativeLayout>
 
@@ -157,7 +169,8 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
             android:text="已处理：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20sp"/>
 
         <TextView
             android:id="@+id/text_finish_success"
@@ -166,7 +179,8 @@
             android:layout_below="@id/text_finish"
             android:layout_centerHorizontal="true"
             android:text="导入成功：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20sp"/>
 
         <TextView
             android:id="@+id/text_finish_failure"
@@ -175,7 +189,18 @@
             android:layout_below="@id/text_finish_success"
             android:layout_centerHorizontal="true"
             android:text="导入失败：0"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:id="@+id/text_finish_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/text_finish_failure"
+            android:layout_centerHorizontal="true"
+            android:text="总数：0"
+            android:textColor="@color/black"
+            android:textSize="20sp"/>
 
     </RelativeLayout>
     <Button
@@ -198,11 +223,11 @@
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/fillet_style_button_selector"
-        android:text="向后台注册用户"
+        android:text="注册用户"
         android:textColor="#fff"
         android:textSize="16sp"
         />
@@ -213,7 +238,7 @@
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/fillet_style_button_selector"
@@ -228,14 +253,71 @@
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/fillet_style_button_selector"
-        android:text="删除"
+        android:text="删库"
         android:textColor="#fff"
         android:textSize="16sp"
         />
+
+    <Button
+    android:id="@+id/button_rename"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_above="@+id/button_import"
+    android:layout_marginLeft="5dp"
+    android:layout_marginBottom="5dp"
+    android:layout_toRightOf="@+id/button_delete"
+    android:background="@drawable/fillet_style_button_selector"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:text="重命名"
+    android:textColor="#fff"
+    android:textSize="16sp" />
+    <Button
+    android:id="@+id/button_delete_file"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_above="@+id/button_import"
+    android:layout_marginLeft="5dp"
+    android:layout_marginBottom="5dp"
+    android:layout_toRightOf="@+id/button_rename"
+    android:background="@drawable/fillet_style_button_selector"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:text="删文件"
+    android:textColor="#fff"
+    android:textSize="16sp" />
+    <Button
+        android:id="@+id/button_delete_success"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_import"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_toRightOf="@+id/button_delete_file"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="删成功"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+    <Button
+        android:id="@+id/button_delete_failed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_import"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_toRightOf="@+id/button_delete_success"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="删失败"
+        android:textColor="#fff"
+        android:textSize="16sp" />
     <Button
         android:id="@+id/button_import"
         android:layout_width="wrap_content"

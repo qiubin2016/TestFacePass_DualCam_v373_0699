@@ -107,6 +107,7 @@ import megvii.testfacepass.camera.CameraPreviewData;
 import megvii.testfacepass.camera.ComplexFrameHelper;
 import megvii.testfacepass.custom.CfgApp;
 import megvii.testfacepass.importmanager.BatchImportActivity;
+import megvii.testfacepass.importmanager.ImageUtils;
 import megvii.testfacepass.importmanager.ImportFileManager;
 import megvii.testfacepass.importmanager.ToastUtils;
 import megvii.testfacepass.network.ByteRequest;
@@ -253,6 +254,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
     private long mStartTime = 0;
     private boolean mTimeLock = false;
+    private boolean mFirstFlag = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -456,6 +458,11 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     @Override
     public void onPictureTaken(CameraPreviewData cameraPreviewData) {
         ComplexFrameHelper.addRgbFrame(cameraPreviewData);
+        if (!mFirstFlag) {
+            mFirstFlag = true;
+            ImageUtils.saveToJpg(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
+            ImageUtils.saveToFile(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
+        }
     }
 
     private class FeedFrameThread extends Thread {

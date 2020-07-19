@@ -1,5 +1,6 @@
 package megvii.testfacepass.camera;
 
+import android.util.Log;
 import android.util.Pair;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -11,10 +12,12 @@ public class ComplexFrameHelper {
             = new ArrayBlockingQueue<>(2);
     private static CameraPreviewData rgbFrameBuffer = null;
     private static CameraPreviewData irFrameBuffer = null;
-    private static void makeComplexFrame() {
+    private static void makeComplexFrame() {//Log.i("FeedFrameThread", "addRgbFrame4");
         if ((rgbFrameBuffer != null) && (irFrameBuffer != null)) {
+//            Log.i("FeedFrameThread", "remainingCapacity:" + complexFrameQueue.remainingCapacity());
             if (complexFrameQueue.remainingCapacity() > 0) {
                 complexFrameQueue.offer(new Pair(rgbFrameBuffer, irFrameBuffer));
+//                Log.i("FeedFrameThread", "size:" + complexFrameQueue.size());
             }
             rgbFrameBuffer = null;
             irFrameBuffer = null;
@@ -23,7 +26,8 @@ public class ComplexFrameHelper {
 
     public static void addRgbFrame(CameraPreviewData rgbFrame) {
         synchronized (ComplexFrameHelper.class) {
-            if (rgbFrameBuffer == null) {
+//            Log.i("FeedFrameThread", "addRgbFrame2");
+            if (rgbFrameBuffer == null) {//Log.i("FeedFrameThread", "addRgbFrame3");
                 rgbFrameBuffer = rgbFrame;
             }
             makeComplexFrame();

@@ -1,19 +1,27 @@
 package megvii.testfacepass.importmanager;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
+import android.media.Image;
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 public class ImageUtils {
-
+    private static final String TAG = ImageUtils.class.getSimpleName();
+    private static int jpgCount = 0;
+    private static int yuvCount = 0;
     /**
      * Bitmap转化为ARGB数据，再转化为NV21数据
      *
@@ -143,7 +151,9 @@ public class ImageUtils {
 
     public static void saveToJpg(byte[] data, final int width, final int height) {
         //保存一张照片
-        String fileName = FileUtils.getTimestampName() + ".jpg";  //jpeg文件名定义
+//        Random random = new Random();
+//        String fileName = FileUtils.getTimestampName() + "-" + String.format("%4s", random.nextInt(9999)) + ".jpg";  //jpeg文件名定义
+        String fileName = FileUtils.getTimestampName() + "-" + String.format("%08d", jpgCount++) + ".jpg";  //jpeg文件名定义
         File sdRoot = Environment.getExternalStorageDirectory();    //系统路径
         String dir = "/MyImage/";   //文件夹名
         File mkDir = new File(sdRoot, dir);
@@ -168,7 +178,9 @@ public class ImageUtils {
     }
     public static void saveToFile(byte[] data, final int width, final int height) {
         //保存一张照片
-        String fileName = FileUtils.getTimestampName() + ".yuv";  //jpeg文件名定义
+//        Random random = new Random();
+//        String fileName = FileUtils.getTimestampName() + "-" + String.format("%4s", random.nextInt(9999)) + ".yuv";  //jpeg文件名定义
+        String fileName = FileUtils.getTimestampName() + "-" + String.format("%08d", yuvCount++) + ".yuv";  //jpeg文件名定义
         File sdRoot = Environment.getExternalStorageDirectory();    //系统路径
         String dir = "/MyImage/";   //文件夹名
         File mkDir = new File(sdRoot, dir);
@@ -195,5 +207,38 @@ public class ImageUtils {
                 }
             }
         }
+    }
+
+    public static byte[] readYuvFileToByteArray(String path) {
+        byte[] byteArr = new byte[0];
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                FileInputStream inputStream = new FileInputStream(file);
+                byteArr = new byte[inputStream.available()];
+                inputStream.read(byteArr);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Log.e(TAG, "path is not exist!");
+        }
+        return byteArr;
+    }
+
+    public static byte[] readJpgFileToByteArray(String path, final int width, final int height) {
+        byte[] byteArr = new byte[0];
+        File file = new File(path);
+        if (file.exists()) {
+            BitmapFactory.Options op = new BitmapFactory.Options();
+            op.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            Bitmap bitmap = BitmapFactory.decodeFile(path, op);
+            if (null != bitmap) {
+                byteArr = bitmapToNv21(bitmap, width, height);
+            }
+        }
+        return byteArr;
     }
 }

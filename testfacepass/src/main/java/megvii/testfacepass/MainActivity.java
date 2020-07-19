@@ -108,8 +108,6 @@ import megvii.testfacepass.camera.ComplexFrameHelper;
 import megvii.testfacepass.custom.CfgApp;
 import megvii.testfacepass.importmanager.BatchImportActivity;
 import megvii.testfacepass.importmanager.ImageUtils;
-import megvii.testfacepass.importmanager.ImportFileManager;
-import megvii.testfacepass.importmanager.ToastUtils;
 import megvii.testfacepass.network.ByteRequest;
 import megvii.testfacepass.utils.FileUtil;
 
@@ -255,6 +253,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     private long mStartTime = 0;
     private boolean mTimeLock = false;
     private boolean mFirstFlag = false;
+    private long mOnPreviewCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -286,10 +285,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         requestQueue = Volley.newRequestQueue(getApplicationContext());
 
         mRecognizeThread = new RecognizeThread();
-        mRecognizeThread.start();
         mFeedFrameThread = new FeedFrameThread();
-        mFeedFrameThread.start();
-
     }
 
     private void initAndroidHandler() {
@@ -409,9 +405,27 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
             }
         }.start();
     }
-
+    private void startRecognize() {
+        mFeedFrameThread.isInterrupt = false;
+        mFeedFrameThread.start();
+        mRecognizeThread.isInterrupt = false;
+        mRecognizeThread.start();
+    }
+    private void stopRecognize() {
+        mFeedFrameThread.isInterrupt = true;
+        mFeedFrameThread.interrupt();
+        mRecognizeThread.isInterrupt = true;
+        mRecognizeThread.interrupt();
+        if (requestQueue != null) {
+            requestQueue.cancelAll("upload_detect_result_tag");
+            requestQueue.cancelAll("handle_sync_request_tag");
+            requestQueue.cancelAll("load_image_request_tag");
+            requestQueue.stop();
+        }
+    }
     @Override
     protected void onResume() {
+        startRecognize();
         checkGroup();
         initToast();
         /* 打开相机 */
@@ -423,6 +437,11 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         super.onResume();
     }
 
+    @Override
+    protected void onPause() {
+        stopRecognize();
+        super.onPause();
+    }
 
     private void checkGroup() {  //检查底库是否存在
         if (mFacePassHandler == null) {
@@ -458,10 +477,11 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     @Override
     public void onPictureTaken(CameraPreviewData cameraPreviewData) {
         ComplexFrameHelper.addRgbFrame(cameraPreviewData);
-        if (!mFirstFlag) {
+        mOnPreviewCount++;
+        if (!mFirstFlag && mOnPreviewCount > 100) {
             mFirstFlag = true;
-            ImageUtils.saveToJpg(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
-            ImageUtils.saveToFile(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
+//            ImageUtils.saveToJpg(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
+//            ImageUtils.saveToFile(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height);
         }
     }
 
@@ -488,8 +508,12 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 }
                 FacePassImage image;
                 try {
-                    Log.d("FeedFrameThread", "cameraRotation：" + cameraRotation);
+                    Log.d("FeedFrameThread", "cameraRotation：" + cameraRotation + ",w:" + framePair.first.width + ",h:" + framePair.first.height
+                    + ",data[0]:" + framePair.first.nv21Data[0] + ",len:" + framePair.first.nv21Data.length);
                     image = new FacePassImage(framePair.first.nv21Data, framePair.first.width, framePair.first.height, cameraRotation, FacePassImageType.NV21);
+//                    byte[] bytes = ImageUtils.readYuvFileToByteArray("/storage/emulated/0/MyImage/20200717090502-00000000.yuv");
+//                    Log.i("FeedFrameThread", "len:" + bytes.length + ",data[0]:" + bytes[0]);
+//                    image = new FacePassImage(bytes, framePair.first.width, framePair.first.height, cameraRotation, FacePassImageType.NV21);
                 } catch (FacePassException e) {
                     e.printStackTrace();
                     continue;
@@ -524,6 +548,11 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             showFacePassFace(bufferFaceList);
                         }
                     });
+//                    Log.i("FeedFrameThread", "saveToJpg");
+//                    ImageUtils.saveToJpg(framePair.first.nv21Data, framePair.first.width, framePair.first.height);
+//                    Log.i("FeedFrameThread", "saveToFile");
+//                    ImageUtils.saveToFile(framePair.first.nv21Data, framePair.first.width, framePair.first.height);
+//                    Log.i("FeedFrameThread", "saveToFile end");
                 }
 
                 if (detectionResult != null && detectionResult.message.length != 0) {
@@ -958,18 +987,6 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
     @Override
     protected void onDestroy() {
-        mRecognizeThread.isInterrupt = true;
-        mFeedFrameThread.isInterrupt = true;
-
-        mRecognizeThread.interrupt();
-        mFeedFrameThread.interrupt();
-        if (requestQueue != null) {
-            requestQueue.cancelAll("upload_detect_result_tag");
-            requestQueue.cancelAll("handle_sync_request_tag");
-            requestQueue.cancelAll("load_image_request_tag");
-            requestQueue.stop();
-        }
-
         if (manager != null) {
             manager.release();
         }
@@ -1658,7 +1675,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         importBtn.setOnClickListener(new View.OnClickListener() {  //批量导入
             @Override
             public void onClick(View v) {
-            startActivity(new Intent(MainActivity.this, BatchImportActivity.class));
+//            startActivity(new Intent(MainActivity.this, BatchImportActivity.class));
             }
         });
 

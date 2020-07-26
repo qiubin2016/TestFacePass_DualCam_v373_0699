@@ -1033,7 +1033,12 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mFuture = mExecutorService.submit(new Runnable() {
             @Override
             public void run() {
-                UserManager.login();  //登录
+                Log.i(TAG, "submit1");
+                UserManager.getBuildList();  //获取楼栋id
+                UserManager.getUnitList();  //获取单元id
+                UserManager.getRoomList();  //获取房间id
+                UserManager.addUserBindRoom();  //添加用户并绑定房间关系
+                Log.i(TAG, "submit2");
             }
         });
     }

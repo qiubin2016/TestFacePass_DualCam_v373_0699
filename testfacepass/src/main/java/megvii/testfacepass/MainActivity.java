@@ -381,7 +381,8 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
 
                             /* 创建SDK实例 */
                             mFacePassHandler = new FacePassHandler(config);
-
+                            //设置红外摄像头配准参数
+                            mFacePassHandler.setIRConfig(0.8272607, 153.18338, 0.8305992, 94.45068, 5);
                             FacePassConfig addFaceConfig = mFacePassHandler.getAddFaceConfig();
                             addFaceConfig.blurThreshold = 0.8f;
                             addFaceConfig.faceMinThreshold = 100;

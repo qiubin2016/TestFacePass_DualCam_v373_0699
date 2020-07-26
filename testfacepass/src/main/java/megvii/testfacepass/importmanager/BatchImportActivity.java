@@ -5,8 +5,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
-import android.util.Pair;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -14,8 +14,13 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,7 +38,6 @@ import mcv.facepass.types.FacePassRecognitionResultType;
 import megvii.testfacepass.MainActivity;
 import megvii.testfacepass.R;
 import megvii.testfacepass.camera.CameraPreviewData;
-import megvii.testfacepass.camera.ComplexFrameHelper;
 
 
 /**
@@ -98,7 +102,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     /* SDK 实例对象 */
     private FacePassHandler mFacePassHandler;
     private boolean isLocalGroupExist = false;
-    private ArrayList<Boolean> mRecognizeResult;
+    private ArrayList<Boolean> mFeedFrameResult;
+//    private ArrayList<Boolean> mRecognizeResult;
+    private boolean mFeedFrameFinish;
+    private int mFeedFrameTotalCount, mFeedFrameSuccessCount, mRecognizeTotalCount;
 
     @Override
 
@@ -187,7 +194,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mDetectResultQueue = new ArrayBlockingQueue<byte[]>(5);
         mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
         mRecognizeQueue = new ArrayBlockingQueue<Boolean>(1);
-        mRecognizeResult = new ArrayList<>(2);
+        mFeedFrameResult = new ArrayList<Boolean>(2);
+//        mRecognizeResult = new ArrayList<Boolean>(2);
         mFeedFrameThread1 = new FeedFrameThread1();
         mRecognizeThread1 = new RecognizeThread1();
     }
@@ -215,7 +223,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 addFace();
                 break;
             case R.id.button_register: //向后台注册用户
-                testBtton();
+                register();
+//                testBtton();
                 break;
             case R.id.button_get:
                 get();
@@ -599,6 +608,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //                                    byte[] bytes = Bitmap2Bytes(bitmap);
 //                                    byte[] bytes = ImageUtils.getNV21(widthPic, heightPic, bitmap);
         Log.i("addface", "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
+        startFeedFrameRecognize();  //初始化检测和识别相关的数据
         //两帧
         addRgbFrame(bytes.clone(), width, height);
         Log.i(TAG, "addRgbFrame");
@@ -607,12 +617,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         try {
             Log.i(TAG, "mRecognizeQueue.take() enter");
             ret = mRecognizeQueue.take();
+            Log.i(TAG, "mRecognizeQueue.take() leave");
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } finally {
-            mRecognizeQueue.clear();  //清空识别结果通知队列
         }
-        Log.i(TAG, "mRecognizeQueue.take() leave");
 
 //        FacePassImage image = null;
 //        try {
@@ -866,6 +874,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         return ret;
     }
 
+//blur:0.20032844,brightness:68.83499,deviation:28.312532,pitch:-2.4827423,roll:6.9652085,yaw:0.15141112,left:230,right:464,top:285,bottom:519
     private boolean jpgFeedFrame(String path, final int width, final int height, final int rotation) {
         boolean ret = false;
         if (isFacePassHandlerNull()) {
@@ -1017,6 +1026,17 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             Log.e(TAG, "groups is null !");
         }
     }
+    private void register() {
+        if (null == mExecutorService) {
+            mExecutorService = Executors.newSingleThreadExecutor();
+        }
+        mFuture = mExecutorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                UserManager.login();  //登录
+            }
+        });
+    }
 
     private void addRgbFrame(byte[] data, final int width, final int height) {
         Log.i(TAG, "addRgbFrame1");
@@ -1068,15 +1088,22 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 }
                 if (detectionResult == null || detectionResult.faceList.length == 0) {
                     Log.e(FeedFrameThreadTAG, "无人脸");  /* 当前帧没有检出人脸 */
+
                 } else {
                     Log.e(FeedFrameThreadTAG, "有人脸");
-                }
-                /*离线模式，将识别到人脸的，message不为空的result添加到处理队列中*/
-                if (detectionResult != null && detectionResult.message.length != 0) {
+                    mFeedFrameSuccessCount++;
                     Log.d(FeedFrameThreadTAG, "mDetectResultQueue.offer");
                     mDetectResultQueue.offer(detectionResult.message);  //添加到识别队列
                     mTimeLock = true;  //锁定mStartTime，直到recognize完成
                     Log.i("]time", "mDetectResultQueue.offer");
+                }
+                mFeedFrameTotalCount++;
+                if (mFeedFrameTotalCount >= 2) {
+                    if (0 == mFeedFrameSuccessCount) {
+                        mRecognizeQueue.offer(false);  //两帧图片都检测到无人脸，直接报错
+                    } else {
+                        mFeedFrameFinish = true;
+                    }
                 }
                 long endTime = System.currentTimeMillis(); //结束时间
                 long runTime = endTime - startTime;
@@ -1115,29 +1142,26 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                         FacePassRecognitionResult[] recognizeResult = mFacePassHandler.recognize(GROUP_NAME, detectionResult);
 
                         if (recognizeResult != null && recognizeResult.length > 0) {  //识别成功
-                            Log.d(RecognizeThreadTAG, "识别有结果");
+                            Log.e(RecognizeThreadTAG, "识别有结果");
                             long endTime = System.currentTimeMillis(); //结束时间
                             long runTime = endTime - mStartTime;
                             Log.i("]time", String.format("recognize %d ms", runTime));
                             for (FacePassRecognitionResult result : recognizeResult) {
                                 if (FacePassRecognitionResultType.RECOG_OK == result.facePassRecognitionResultType) {
-                                    Log.d(RecognizeThreadTAG, "识别成功");
+                                    Log.e(RecognizeThreadTAG, "识别成功");
                                     ret = true;
                                 }
                                 showRecognizeReslt(result);  //打印识别结果
                             }
                         } else {
-                            Log.d(RecognizeThreadTAG, "识别失败");
+                            Log.e(RecognizeThreadTAG, "识别失败");
                         }
-                        mRecognizeResult.add(ret);
-                        if (mRecognizeResult.size() >= 2) {
-                            for (Boolean result : mRecognizeResult) {
-                                if (result) {
-                                    mRecognizeQueue.offer(true);
-                                    break;
-                                }
+                        mRecognizeTotalCount++;
+                        if (mFeedFrameFinish) {
+                            if (ret) {  //识别成功
+                                mRecognizeQueue.offer(true);
                             }
-                            if (0 == mRecognizeQueue.size()) {
+                            else if (mRecognizeTotalCount >= mFeedFrameSuccessCount) {  //识别失败次数等于送识别次数
                                 mRecognizeQueue.offer(false);
                             }
                         }
@@ -1165,5 +1189,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 + ",ext:" + result.detail.searchExtThreshold + "\nliveness score:" + result.detail.livenessScore + ",threadshold:"
                 + result.detail.livenessThreshold + "\nmouth valid:" + result.detail.mouthOccAttr.is_valid + ",status:"
                 + result.detail.mouthOccAttr.mouth_occ_status);
+    }
+
+    private void startFeedFrameRecognize() {
+        mFeedFrameFinish = false;
+        mFeedFrameSuccessCount = 0;
+        mFeedFrameTotalCount = 0;
+        mFeedFrameResult.clear();
+        mRecognizeTotalCount = 0;
+        mRecognizeQueue.clear();  //清空识别结果通知队列
+    }
+
+    private void stopFeedFrameRecognize() {
+
     }
 }

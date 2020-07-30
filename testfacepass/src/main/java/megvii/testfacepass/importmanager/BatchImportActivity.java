@@ -65,6 +65,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private Button mDeleteSuccess;
     private Button mDeleteFailed;
     private Button mButtonImport;
+    private Button mTest;
     private RelativeLayout mRelativeContent;    // 显示说明的布局
     private RelativeLayout mRelativeImport;     // 显示进度的布局
     private RelativeLayout mRelativeFinish;     // 显示结果的布局
@@ -160,6 +161,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mDeleteFailed.setOnClickListener(this);
         mButtonImport = (Button) findViewById(R.id.button_import);
         mButtonImport.setOnClickListener(this);
+        mTest = (Button) findViewById(R.id.button_test);
+        mTest.setOnClickListener(this);
         mRelativeContent = (RelativeLayout) findViewById(R.id.relative_content);
         mRelativeImport = (RelativeLayout) findViewById(R.id.relative_progress);
         mRelativeFinish = (RelativeLayout) findViewById(R.id.relative_finish);
@@ -243,6 +246,9 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 break;
             case R.id.button_delete_failed:
                 deleteFailed();
+                break;
+            case R.id.button_test:
+                test();
                 break;
             case R.id.button_import_back:
                 // 释放
@@ -808,7 +814,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 Log.i(TAG, "get1:" + num);
 //                toast("get:" + num);
                 Log.i(TAG, "test");
-                test();
+                test1();
                 Log.i(TAG, "jpgFeedFrame");
                 jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 0);
                 jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 90);
@@ -840,7 +846,24 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         });
     }
 
-    private boolean test() {
+    private void test() {
+        if (isFacePassHandlerNull()) {
+            return ;
+        }
+        String str = "6a 33 92 75 7e 73 7d 87 80 9d 6b 78 8b 7b 87 71 6d 74 82 67 6d 51 75 8d 8d 81 8f 60 86 73 80 61 8a 33 87 94 66 91 8a 98 ab 69 65 af 88 70 7e 87 90 8f 62 6b 7a 92 6f 5a 83 74 51 7a 8c 7f 9a 85 90 4f 76 8a 81 7e 66 84 84 6d 82 83 ae ac 5b 77 7b 85 7e 70 93 83 96 6a b2 77 76 53 66 84 8e 75 6c aa 80 6d 8c 9d 70 90 69 92 74 c0 79 5e 83 8c 8d 8c 3e 73 55 6f 8f bb 60 6f 6b 7b 89 6a 86 94 49 af 99 74 6b 62 7b 6e 66 a2 71 a8 8f 57 83 86 9d 5e 98 73 8f 6c 9b 56 68 4d 84 75 56 95 5e 84 88 96 9f 76 77 7e 88 86 6a 68 81 54 57 87 a8 ac 98 89 72 74 8b 69 9e b1 68 40 90 85 98 73 7e 94 96 80 7e 61 79 67 84 9b 91 a7 65 88 a0 73 95 4b 95 80 89 9d a9 7d 75 a1 85 a9 85 9f 8b a4 7b 8f 97 96 84 92 75 82 74 5f 7e 59 a6 53 70 7d 93 7c 7c 59 79 bc 84 8e a9 8d 83 72 a4 7d 91 5c 39 9b 98 82 82 8d 71 7f 86 80 92 89 66 67 7c 79 7d 73 6c 89 54 91 94 59 80 8b 5a 6b 69 4f 6d 6a af 82 77 92 85 79 bb 52 77 82 5d ab 93 76 7e 7f 7d 70 6a 60 72 66 91 7b 8c b1 81 66 8f a1 9b 8c ae 52 8f 90 84 5d 9f 60 9a 86 8a 77 6d 81 a6 6f 8e 80 89 8f 9a 6f 88 6b 64 73 9b 6a 87 63 8c 73 93 8e 60 6e 92 77 a0 86 84 6b 79 8b 6b ab 84 5a 7d 82 5b 72 6e 67 9a 64 8e 8d 8f 85 a0 91 68 93 70 7b 5b 81 78 7e 9a 93 74 4d b4 5a 86 93 8b 92 7a 72 6b 7d 79 7d 5e b3 53 8d 95 85 89 87 6a a3 72 9e 89 73 64 9c 5a 74 63 b1 8d 86 55 b1 77 95 81 96 79 5c 84 73 73 87 6a 56 85 68 56 63 72 99 91 8e 58 45 54 83 a9 8e ac 63 af 87 60 7c 9c 37 4c 93 93 73 8a 99 83 96 8c 81 77 a2 81 96 82 8f 79 7f 8e 9d 98 83 6a 99 65 83 90 93 63 74 80 9c 70 3a 8f 81 70 7e 69 89 6c 7c 77 68 a0 3f 6f 7a 7f 82 8f 13 02 4b";
+        str = str.replace(" ", "");  //将所有空格删除
+        Log.i(TAG, "str:\n" + str);
+        byte[] bytes = new byte[512];
+        String faceToken;
+        try {
+            faceToken = mFacePassHandler.insertFeature(bytes, null);
+            Log.i(TAG, "faceToken:" + faceToken);
+        } catch (FacePassException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean test1() {
         boolean ret = false;
         if (isFacePassHandlerNull()) {
             return ret;
@@ -1095,12 +1118,15 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     Log.e(FeedFrameThreadTAG, "无人脸");  /* 当前帧没有检出人脸 */
 
                 } else {
-                    Log.e(FeedFrameThreadTAG, "有人脸");
-                    mFeedFrameSuccessCount++;
-                    Log.d(FeedFrameThreadTAG, "mDetectResultQueue.offer");
-                    mDetectResultQueue.offer(detectionResult.message);  //添加到识别队列
-                    mTimeLock = true;  //锁定mStartTime，直到recognize完成
-                    Log.i("]time", "mDetectResultQueue.offer");
+                    Log.e(FeedFrameThreadTAG, "有人脸" + ",trackId:" + detectionResult.faceList[0].trackId);
+                    if (detectionResult.message.length != 0) {
+                        Log.d(FeedFrameThreadTAG, "送识别");
+                        mFeedFrameSuccessCount++;
+                        Log.d(FeedFrameThreadTAG, "mDetectResultQueue.offer");
+                        mDetectResultQueue.offer(detectionResult.message);  //添加到识别队列
+                        mTimeLock = true;  //锁定mStartTime，直到recognize完成
+                        Log.i("]time", "mDetectResultQueue.offer");
+                    }
                 }
                 mFeedFrameTotalCount++;
                 if (mFeedFrameTotalCount >= 2) {

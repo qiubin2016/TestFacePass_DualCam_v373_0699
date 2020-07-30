@@ -263,33 +263,33 @@
         />
 
     <Button
-    android:id="@+id/button_rename"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@+id/button_import"
-    android:layout_marginLeft="5dp"
-    android:layout_marginBottom="5dp"
-    android:layout_toRightOf="@+id/button_delete"
-    android:background="@drawable/fillet_style_button_selector"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp"
-    android:text="重命名"
-    android:textColor="#fff"
-    android:textSize="16sp" />
+        android:id="@+id/button_rename"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_import"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_toRightOf="@+id/button_delete"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="重命名"
+        android:textColor="#fff"
+        android:textSize="16sp" />
     <Button
-    android:id="@+id/button_delete_file"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@+id/button_import"
-    android:layout_marginLeft="5dp"
-    android:layout_marginBottom="5dp"
-    android:layout_toRightOf="@+id/button_rename"
-    android:background="@drawable/fillet_style_button_selector"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp"
-    android:text="删文件"
-    android:textColor="#fff"
-    android:textSize="16sp" />
+        android:id="@+id/button_delete_file"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_import"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_toRightOf="@+id/button_rename"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="删文件"
+        android:textColor="#fff"
+        android:textSize="16sp" />
     <Button
         android:id="@+id/button_delete_success"
         android:layout_width="wrap_content"
@@ -316,6 +316,20 @@
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
         android:text="删失败"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/button_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_addface"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="测试"
         android:textColor="#fff"
         android:textSize="16sp" />
     <Button

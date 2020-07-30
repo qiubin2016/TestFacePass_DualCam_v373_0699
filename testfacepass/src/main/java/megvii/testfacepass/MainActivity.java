@@ -382,7 +382,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             /* 创建SDK实例 */
                             mFacePassHandler = new FacePassHandler(config);
                             //设置红外摄像头配准参数
-                            mFacePassHandler.setIRConfig(0.8272607, 153.18338, 0.8305992, 94.45068, 5);
+//                            mFacePassHandler.setIRConfig(0.8272607, 153.18338, 0.8305992, 94.45068, 5);
                             FacePassConfig addFaceConfig = mFacePassHandler.getAddFaceConfig();
                             addFaceConfig.blurThreshold = 0.8f;
                             addFaceConfig.faceMinThreshold = 100;
@@ -541,6 +541,10 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                     });
                 } else {
                     Log.d("FeedFrameThread", "feedFrame success!");
+                    Log.d("FeedFrameThread", "len:" + detectionResult.faceList.length + ",trackId:" + detectionResult.faceList[0].trackId);
+                    if (detectionResult != null && detectionResult.message.length != 0) {
+                        Log.d("FeedFrameThread", "=======01");
+                    }
                     /* 将识别到的人脸在预览界面中圈出，并在上方显示人脸位置及角度信息 */
                     final FacePassFace[] bufferFaceList = detectionResult.faceList;
                     runOnUiThread(new Runnable() {
@@ -562,13 +566,13 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         FacePassImage irImage = new FacePassImage(framePair.second.nv21Data, framePair.second.width, framePair.second.height, cameraRotation, FacePassImageType.NV21);
                         detectionResult = mFacePassHandler.IRfilter(irImage, detectionResult);
                         if (detectionResult.message.length == 0) {
-                            Log.d("FeedFrameThread", "IRfilter success!");
+                            Log.d("FeedFrameThread", "IRfilter failed!");
                             for (FacePassFace face : detectionResult.faceList) {
                                 mFacePassHandler.decodeResponseVirtual(face.trackId);
                                 mFacePassHandler.resetMessage(face.trackId);
                             }
                         } else {
-                            Log.d("FeedFrameThread", "IRfilter failed!");
+                            Log.d("FeedFrameThread", "IRfilter success!");
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -636,7 +640,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                 } else {
                     /*离线模式，将识别到人脸的，message不为空的result添加到处理队列中*/
                     if (detectionResult != null && detectionResult.message.length != 0) {
-                        Log.d(DEBUG_TAG, "mDetectResultQueue.offer");
+                        Log.d("FeedFrameThread", "mDetectResultQueue.offer");
 
 
                         mDetectResultQueue.offer(detectionResult.message);
@@ -694,6 +698,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         FacePassRecognitionResult[] recognizeResult = mFacePassHandler.recognize(group_name, detectionResult);
 
                         if (recognizeResult != null && recognizeResult.length > 0) {
+                            Log.e("RecognizeThread", "recognize success!");
                             long endTime = System.currentTimeMillis(); //结束时间
                             long runTime = endTime - mStartTime;
                             Log.i("]time", String.format("recognize %d ms", runTime));
@@ -710,7 +715,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                                 }
                             }
                         } else {
-                            Log.d("c", "recognize failed!");
+                            Log.e("RecognizeThread", "recognize failed!");
                         }
                     }
                 } catch (InterruptedException e) {

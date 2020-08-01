@@ -1,4 +1,4 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,10 +14,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-import static megvii.testfacepass.importmanager.APIUtil.JsonToMap;
-import static megvii.testfacepass.importmanager.APIUtil.aesDecrypt;
-import static megvii.testfacepass.importmanager.APIUtil.aesEncryptSDK;
-import static megvii.testfacepass.importmanager.APIUtil.getSDKV2Md5;
+import static megvii.testfacepass.custom.importmanager.APIUtil.JsonToMap;
+import static megvii.testfacepass.custom.importmanager.APIUtil.aesDecrypt;
+import static megvii.testfacepass.custom.importmanager.APIUtil.aesEncryptSDK;
+import static megvii.testfacepass.custom.importmanager.APIUtil.getSDKV2Md5;
 
 public class UserManager {
     private static final String TAG = UserManager.class.getSimpleName();

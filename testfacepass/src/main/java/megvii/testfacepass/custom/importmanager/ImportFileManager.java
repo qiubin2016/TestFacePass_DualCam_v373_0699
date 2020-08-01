@@ -1,18 +1,9 @@
-package megvii.testfacepass.importmanager;
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.icu.text.SimpleDateFormat;
-import android.icu.util.Calendar;
-import android.text.format.DateFormat;
-import android.util.Log;
+package megvii.testfacepass.custom.importmanager;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import megvii.testfacepass.MainActivity;
 
 
 /**

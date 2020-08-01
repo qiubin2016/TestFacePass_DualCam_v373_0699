@@ -1,6 +1,5 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
-import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 
@@ -9,7 +8,6 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;

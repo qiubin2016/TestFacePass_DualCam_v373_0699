@@ -1,10 +1,9 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 import android.graphics.Bitmap;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.os.Environment;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,8 +13,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-
-import megvii.testfacepass.utils.FileUtil;
 
 /**
  * author : shangrong

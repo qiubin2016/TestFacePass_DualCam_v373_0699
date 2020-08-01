@@ -1,11 +1,10 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
-import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
 
@@ -16,7 +15,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Random;
 
 public class ImageUtils {
     private static final String TAG = ImageUtils.class.getSimpleName();

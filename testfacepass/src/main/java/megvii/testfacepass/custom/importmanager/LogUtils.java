@@ -1,4 +1,4 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 import android.util.Log;
 

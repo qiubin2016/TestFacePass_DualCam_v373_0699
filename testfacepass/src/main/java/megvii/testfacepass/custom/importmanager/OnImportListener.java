@@ -1,4 +1,4 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 /**
  * 导入相关listener

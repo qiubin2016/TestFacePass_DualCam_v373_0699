@@ -106,8 +106,7 @@ import megvii.testfacepass.camera.CameraPreview;
 import megvii.testfacepass.camera.CameraPreviewData;
 import megvii.testfacepass.camera.ComplexFrameHelper;
 import megvii.testfacepass.custom.CfgApp;
-import megvii.testfacepass.importmanager.BatchImportActivity;
-import megvii.testfacepass.importmanager.ImageUtils;
+import megvii.testfacepass.custom.importmanager.BatchImportActivity;
 import megvii.testfacepass.network.ByteRequest;
 import megvii.testfacepass.utils.FileUtil;
 

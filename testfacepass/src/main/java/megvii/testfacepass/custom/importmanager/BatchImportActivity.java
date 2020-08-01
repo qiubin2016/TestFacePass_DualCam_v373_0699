@@ -1,11 +1,10 @@
-package megvii.testfacepass.importmanager;
+package megvii.testfacepass.custom.importmanager;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -14,13 +13,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.lee.zbardemo.Util;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +27,7 @@ import mcv.facepass.FacePassHandler;
 import mcv.facepass.types.FacePassAddFaceResult;
 import mcv.facepass.types.FacePassConfig;
 import mcv.facepass.types.FacePassDetectionResult;
+import mcv.facepass.types.FacePassExtractFeatureResult;
 import mcv.facepass.types.FacePassImage;
 import mcv.facepass.types.FacePassImageType;
 import mcv.facepass.types.FacePassRecognitionResult;
@@ -858,6 +855,23 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         try {
             faceToken = mFacePassHandler.insertFeature(bytes, null);
             Log.i(TAG, "faceToken:" + faceToken);
+        } catch (FacePassException e) {
+            e.printStackTrace();
+        }
+
+        //提取特征值
+        FacePassExtractFeatureResult result;
+        boolean isSuccess;
+        String faceTokenStr;
+        Bitmap bitmap = BitmapFactory.decodeFile("/storage/emulated/0/DCIM/Camera/qiub4.jpg");
+        try {
+            result = mFacePassHandler.extractFeature(bitmap);
+            Log.i(TAG, "ret:" + result.result + ",len:" + result.featureData.length + ",data:\n" + Util.Companion.ByteArray2HexStr(result.featureData, true));
+            faceToken = mFacePassHandler.insertFeature(result.featureData, null);
+            faceTokenStr = new String(faceToken);
+            Log.i(TAG, "faceToken:" + faceTokenStr);
+            isSuccess = mFacePassHandler.bindGroup(GROUP_NAME, faceTokenStr.getBytes());
+            Log.i(TAG, "bindGroup:" + (isSuccess ? "success" : "failed"));
         } catch (FacePassException e) {
             e.printStackTrace();
         }

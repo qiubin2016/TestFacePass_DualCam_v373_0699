@@ -103,6 +103,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private boolean mTimeLock = false;
     private final int mCamerarotation = 0;  //照片都是0度，无旋转
     private int mCamerarotationBak = 0;  //保存原来Config.rotation
+    private boolean mIsModify = false;   //记录是否进行了facepass config调整
     /* SDK 实例对象 */
     private FacePassHandler mFacePassHandler;
     private boolean isLocalGroupExist = false;
@@ -199,6 +200,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         if (null == mFeedFrameThread1) {
             Log.e(TAG, "mFeedFrameThread is null");
         }
+
 //        mDetectResultQueue = new ArrayBlockingQueue<byte[]>(5);
         mDetectResultQueue = new ArrayBlockingQueue<RecognizeData>(5);
 //        mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
@@ -1091,6 +1093,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         config.rgbIrLivenessEnabled = false;       //关闭红外活体功能
         try {
             mFacePassHandler.setConfig(config);
+            mIsModify = true;
         } catch (FacePassException e) {
             e.printStackTrace();
             return false;
@@ -1103,15 +1106,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         if (isFacePassHandlerNull()) {
             return false;
         }
-        FacePassConfig config = mFacePassHandler.getAddFaceConfig();
-        config.rotation = mCamerarotationBak;
-        config.livenessEnabled = false;            //关闭活体 红外活体开关与活体开关，是两个独立的功能，同时打开，SDK只会使用一种活体算法，优先使用红外活体检测
-        config.rgbIrLivenessEnabled = true;        //打开红外活体功能
-        try {
-            mFacePassHandler.setConfig(config);
-        } catch (FacePassException e) {
-            e.printStackTrace();
-            return false;
+        if (mIsModify) {
+            FacePassConfig config = mFacePassHandler.getAddFaceConfig();
+            config.rotation = mCamerarotationBak;
+            config.livenessEnabled = false;            //关闭活体 红外活体开关与活体开关，是两个独立的功能，同时打开，SDK只会使用一种活体算法，优先使用红外活体检测
+            config.rgbIrLivenessEnabled = true;        //打开红外活体功能
+            try {
+                mFacePassHandler.setConfig(config);
+                mIsModify = false;
+            } catch (FacePassException e) {
+                e.printStackTrace();
+                return false;
+            }
         }
         return true;
     }

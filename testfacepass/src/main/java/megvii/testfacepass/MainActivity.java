@@ -425,7 +425,6 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
     }
     @Override
     protected void onResume() {
-        startRecognize();
         checkGroup();
         initToast();
         /* 打开相机 */
@@ -435,11 +434,12 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         }
         adaptFrameLayout();
         super.onResume();
+        startRecognize();  //启动检测和识别线程
     }
 
     @Override
     protected void onPause() {
-        stopRecognize();
+        stopRecognize();  //停止检测和识别线程
         super.onPause();
     }
 

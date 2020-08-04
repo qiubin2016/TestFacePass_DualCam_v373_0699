@@ -115,6 +115,12 @@ public class FileUtils {
     public static File getBatchImportFailedDirectory() {
         return getBatchImportDirectory("Failed-Import");
     }
+    /**
+     * 获取导入图片重复的目录信息
+     */
+    public static File getBatchImportRepeatDirectory() {
+        return getBatchImportDirectory("Repeat-Import");
+    }
     public static File getBatchImportDirectory(String fileName) {
         File sdRootFile = getSDRootFile();
         File file = null;
@@ -275,7 +281,7 @@ public class FileUtils {
     }
 
     public static String getTimestampName() {
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+        SimpleDateFormat df = new SimpleDateFormat("MMddHHmm");
         Calendar calendar = Calendar.getInstance();
         String dateName = df.format(calendar.getTime());
 

@@ -324,7 +324,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/button_addface"
-        android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
@@ -332,6 +331,22 @@
         android:text="测试"
         android:textColor="#fff"
         android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/button_extract"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/button_test"
+        android:layout_above="@+id/button_addface"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="提取"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+
     <Button
         android:id="@+id/button_import"
         android:layout_width="wrap_content"

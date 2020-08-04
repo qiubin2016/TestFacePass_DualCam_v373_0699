@@ -690,7 +690,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         }
                     }
 
-                    Log.d(DEBUG_TAG, "mDetectResultQueue.isLocalGroupExist");
+                    Log.d(DEBUG_TAG, "mDetectResultQueue.isLocalGroupExist:" + isLocalGroupExist);
                     if (isLocalGroupExist) {
                         Log.d(DEBUG_TAG, "mDetectResultQueue.recognize");
 

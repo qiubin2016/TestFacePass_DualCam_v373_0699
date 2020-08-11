@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'io.objectbox'  //Apply last.
 
 android {
     compileSdkVersion 25
@@ -59,6 +60,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'org.apache.commons:commons-lang3:3.8.1'
     implementation 'commons-lang:commons-lang:2.6'
+    implementation 'com.dianping.android.sdk:logan:1.2.4'
 }
 repositories {
     mavenCentral()

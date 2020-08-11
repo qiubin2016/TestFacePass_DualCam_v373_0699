@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.dianping.logan.Logan;
 
 import org.json.JSONException;
 
@@ -19,6 +20,15 @@ import static megvii.testfacepass.custom.importmanager.APIUtil.aesDecrypt;
 import static megvii.testfacepass.custom.importmanager.APIUtil.aesEncryptSDK;
 import static megvii.testfacepass.custom.importmanager.APIUtil.getSDKV2Md5;
 
+/**
+ * 目标：自动向物业后台注册n个用户，并上传n个用户人脸图片
+ * 思路：
+ * 1.从本地文件夹搜索特定规则的人脸图片，将group、用户名、手机号(1330000xxxx)保存到数据库;
+ * 例如：0801185200001-facepass.jpg，group:facepass,用户名:0801185200001，手机号：13300000001
+ * 2.从101~xx01房号，每个房间注册500个用户，注册结果后保存到数据库
+ * 3.从数据库查询没有人脸图片的用户,在本地文件夹匹配到图片则更新用户数据
+ * 数据库字段：user_name,group,phone_num,user_id,build,unit,room,status,face_token
+ */
 public class UserManager {
     private static final String TAG = UserManager.class.getSimpleName();
     private static final String REQUEST_URL = "http://sdk.api.jia-r.com";
@@ -28,6 +38,8 @@ public class UserManager {
     private static final String URL_GETUNITLIST = "/sdk/cloud/base/getUnitList";
     private static final String URL_GETROOMLIST = "/sdk/cloud/base/getRoomList";
     private static final String URL_ADDUSERBINDROOM = "/sdk/cloud/face/addUserBindRoom";
+    private static final String URL_UPDATEUSERINFO = "/sdk/cloud/face/updateUserInfo";
+    private static final String URL_GETUSERINFO = "/sdk/cloud/face/getUserInfo";
 
     private static final String APP_ID = "978887645289676800";
     private static final String APP_SECRET = "5E6C5A3B5A720340";
@@ -72,7 +84,7 @@ public class UserManager {
             jsonToMap.remove("appSecret");
             String sign = getSDKV2Md5(jsonToMap, requestId, timestamp, APP_SECRET);//签名运算
             json.put("sign", sign);
-            Log.i(TAG, "json:" + json.toJSONString());
+            LogUtils.e(TAG, "json:" + json.toJSONString());
             encryptResult = aesEncryptSDK(json.toJSONString(), APP_SECRET);//使用key进行aes加密运算
             Log.i(TAG, "加密后的入参:"+ encryptResult);
             //解密入参
@@ -165,8 +177,7 @@ public class UserManager {
     }
     public static String postToServer(String url, String appSecret, JSONObject param) {
         Log.i(TAG, "=====================postToServer");
-        Log.i(TAG, "=====================postToServer001");
-        Log.i(TAG, "=====================postToServer002");
+        Log.i(TAG, "url:" + url);
         if (mToken.isEmpty()) {
             Log.i(TAG, "token is empty");
             login();  //登录获取token
@@ -332,9 +343,8 @@ public class UserManager {
     public static void addUserBindRoom() {
         String image = "";
         byte[] bytes;
-        Bitmap bitmap = BitmapFactory.decodeFile("/sdcard/Success-Import/2020071601394600018-facepass.jpg");
+        Bitmap bitmap = BitmapFactory.decodeFile("/sdcard/Face-Import/zhu01.jpg");
         if (null != bitmap) {
-//            bytes = ImageUtils.bitmapToNv21(bitmap, bitmap.getWidth(), bitmap.getHeight());
             bytes = ImageUtils.Bitmap2Bytes(bitmap);
             try {
                 image = APIUtil.encodeBase64(bytes);
@@ -345,7 +355,7 @@ public class UserManager {
         String result;
         result = postToServer(REQUEST_URL_TEST + URL_ADDUSERBINDROOM,
                 null,
-                getAddUserBindRoomParam("13300000003", "qb1", 1, mBuildId, mUnitId, mRoomId, "0204",
+                getAddUserBindRoomParam("13300000007", "qb1", 1, mBuildId, mUnitId, mRoomId, "0204",
                         2, image));
         if ((null != result) && (!result.isEmpty())) {
             JSONObject object = JSONObject.parseObject(result);
@@ -363,6 +373,105 @@ public class UserManager {
                         Log.i(TAG, "roomId:" + mRoomId);
                         break;  //只取第1个数组元素
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * userId	String	Y	用户编号
+     * realName	String	Y	姓名
+     * phoneNum	String	N	手机号
+     * gender	String	N	性别：1男 0女
+     * imageStr	String	N	图片信息base64
+     */
+    public static JSONObject getUpdateUserInfoParam(String userId, String realName, String phoneNum, String gender, String imageStr) {
+        JSONObject obj = new JSONObject();
+        obj.put("userId", userId);
+        obj.put("realName", realName);
+        if (null != phoneNum) {
+            obj.put("phoneNum", phoneNum);
+        }
+        if (null != gender) {
+            obj.put("gender", gender);
+        }
+        if (null != imageStr) {
+            obj.put("imageStr", imageStr);
+        }
+        Log.i(TAG, "obj:" + obj.toString());
+//        Logan.w("obj1:" + obj.toString(), 2);
+        System.out.println("obj2:" + obj.toString());
+
+        return obj;
+    }
+    public static void updateUserInfo() {
+        String image = "";
+        byte[] bytes;
+        Bitmap bitmap = BitmapFactory.decodeFile("/sdcard/Face-Import/003.jpg");
+        if (null != bitmap) {
+            bytes = ImageUtils.Bitmap2Bytes(bitmap);
+            try {
+                image = APIUtil.encodeBase64(bytes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        String result;
+        result = postToServer(REQUEST_URL_TEST + URL_UPDATEUSERINFO,
+                null,
+                getUpdateUserInfoParam("0fc137d2956b89791f031d6e23ccb8ad", "qb2", null, null, image));
+        if ((null != result) && (!result.isEmpty())) {
+            JSONObject object = JSONObject.parseObject(result);
+            if (null != object) {
+                int msgCode = object.getInteger("msgCode");
+                Log.i(TAG, "msgCode:" + msgCode);
+                if (0 == msgCode) {  //成功
+
+                }
+            }
+        }
+    }
+    /**
+     * userId	String	N	用户编号
+     * realName	String	N	用户姓名(可模糊查询)
+     * phoneNum	String	N	手机号(可模糊查询)
+     * currentPage	String	N	当前页默认为1
+     * pageSize	String	N	页面大小默认为15
+     */
+    public static JSONObject getUserInfoParam(String userId, String realName, String phoneNum, String currentPage, String pageSize) {
+        JSONObject obj = new JSONObject();
+        if (null != userId) {
+            obj.put("userId", userId);
+        }
+        if (null != realName) {
+            obj.put("realName", realName);
+        }
+        if (null != phoneNum) {
+            obj.put("phoneNum", phoneNum);
+        }
+        if (null != currentPage) {
+            obj.put("currentPage", currentPage);
+        }
+        if (null != pageSize) {
+            obj.put("pageSize", pageSize);
+        }
+        LogUtils.i(TAG, "obj:" + obj.toString());
+//        Logan.w("obj1:" + obj.toString(), 2);
+
+        return obj;
+    }
+    public static void getUserInfo() {
+        String result;
+        result = postToServer(REQUEST_URL_TEST + URL_GETUSERINFO,
+                null,
+                getUserInfoParam(null, null, "13300000007", null, null));
+        if ((null != result) && (!result.isEmpty())) {
+            JSONObject object = JSONObject.parseObject(result);
+            if (null != object) {
+                int msgCode = object.getInteger("msgCode");
+                Log.i(TAG, "msgCode:" + msgCode);
+                if (0 == msgCode) {  //成功
+
                 }
             }
         }

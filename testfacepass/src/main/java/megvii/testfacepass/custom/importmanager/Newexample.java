@@ -1,5 +1,7 @@
 package megvii.testfacepass.custom.importmanager;
 
+import android.util.Log;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
@@ -105,6 +107,7 @@ public class Newexample {
 		PrintWriter out = null;
 		BufferedReader in = null;
 		String result = "";
+		LogUtils.e("sendPost", "param:" + param);
 		try {
 			URL realUrl = new URL(url);
 			// 打开和URL之间的连接

@@ -1174,7 +1174,9 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 UserManager.getBuildList();  //获取楼栋id
                 UserManager.getUnitList();  //获取单元id
                 UserManager.getRoomList();  //获取房间id
-                UserManager.addUserBindRoom();  //添加用户并绑定房间关系
+//                UserManager.addUserBindRoom();  //添加用户并绑定房间关系
+                UserManager.updateUserInfo();  //修改用户信息
+//                UserManager.getUserInfo();    //获取用户信息列表
                 Log.i(TAG, "submit2");
             }
         });

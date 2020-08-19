@@ -9,6 +9,8 @@ import com.dianping.logan.LoganConfig;
 
 import java.io.File;
 
+import megvii.testfacepass.custom.db.ObjectBox;
+
 public class CfgApp extends Application {
     private static final String TAG = CfgApp.class.getSimpleName();
 
@@ -45,6 +47,8 @@ public class CfgApp extends Application {
         Log.e(TAG, "path:" + getApplicationContext().getExternalFilesDir(null).getAbsolutePath()
                 + File.separator + "logan_v1");
         Log.e(TAG, Logan.getAllFilesInfo().toString());
+
+        ObjectBox.INSTANCE.init(this);  //数据库初始化
     }
 
     public static boolean isSmdt() {

@@ -348,6 +348,64 @@
         android:textSize="16sp" />
 
     <Button
+        android:id="@+id/button_db_add"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="0dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="增"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+    <Button
+        android:id="@+id/button_db_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/button_db_add"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="删"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/button_db_update"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/button_db_delete"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="改"
+        android:textColor="#fff"
+    android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/button_db_query"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/button_db_update"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="查"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+
+    <Button
         android:id="@+id/button_import"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

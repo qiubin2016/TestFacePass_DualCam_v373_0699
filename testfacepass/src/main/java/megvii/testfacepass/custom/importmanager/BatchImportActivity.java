@@ -36,6 +36,7 @@ import mcv.facepass.types.FacePassRecognitionResultType;
 import megvii.testfacepass.MainActivity;
 import megvii.testfacepass.R;
 import megvii.testfacepass.camera.CameraPreviewData;
+import megvii.testfacepass.custom.db.DbOpt;
 
 import static java.net.Socket.setSocketImplFactory;
 
@@ -67,6 +68,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private Button mButtonImport;
     private Button mTest;
     private Button mExtract;
+    private Button mDbAdd, mDbDelete, mDbUpdate, mDbQuery;
     private RelativeLayout mRelativeContent;    // 显示说明的布局
     private RelativeLayout mRelativeImport;     // 显示进度的布局
     private RelativeLayout mRelativeFinish;     // 显示结果的布局
@@ -169,6 +171,14 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mTest.setOnClickListener(this);
         mExtract = (Button) findViewById(R.id.button_extract);
         mExtract.setOnClickListener(this);
+        mDbAdd = (Button) findViewById(R.id.button_db_add);  //数据库增加数据按钮
+        mDbAdd.setOnClickListener(this);
+        mDbDelete = (Button) findViewById(R.id.button_db_delete);  //数据库删除数据按钮
+        mDbDelete.setOnClickListener(this);
+        mDbUpdate = (Button) findViewById(R.id.button_db_update);  //数据库更新数据按钮
+        mDbUpdate.setOnClickListener(this);
+        mDbQuery = (Button) findViewById(R.id.button_db_query);  //数据库查询数据按钮
+        mDbQuery.setOnClickListener(this);
         mRelativeContent = (RelativeLayout) findViewById(R.id.relative_content);
         mRelativeImport = (RelativeLayout) findViewById(R.id.relative_progress);
         mRelativeFinish = (RelativeLayout) findViewById(R.id.relative_finish);
@@ -261,6 +271,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             case R.id.button_extract:
 //                extract();
                 isFaceExist("/storage/emulated/0/DCIM/Camera/qiub4.jpg");
+                break;
+            case R.id.button_db_add:
+                dbAdd();
+                break;
+            case R.id.button_db_delete:
+                dbDelete();
+                break;
+            case R.id.button_db_update:
+                dbUpdate();
+                break;
+            case R.id.button_db_query:
+                dbQuery();
                 break;
             case R.id.button_import_back:
                 // 释放
@@ -1403,5 +1425,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 
     private void stopFeedFrameRecognize() {
 
+    }
+
+    private void dbAdd() {
+        DbOpt.Companion.insert();
+    }
+    private void dbDelete() {
+        DbOpt.Companion.delete();
+    }
+    private void dbUpdate() {
+        DbOpt.Companion.update();
+    }
+    private void dbQuery() {
+        DbOpt.Companion.query();
     }
 }

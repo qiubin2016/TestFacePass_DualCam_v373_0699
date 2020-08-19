@@ -371,7 +371,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             config.lowBrightnessThreshold = 70f;
                             config.highBrightnessThreshold = 210f;     //人脸平均照度阈值范围
                             config.brightnessSTDThreshold = 80f;       //人脸照度标准差阈值
-                            config.retryCount = 2;                    //重试次数
+                            config.retryCount = 2;                     //重试次数
                             config.smileEnabled = false;               //关闭微笑模型检测
                             config.maxFaceEnabled = true;              //打开最大人脸检测 使能最大人脸，如果同一帧数据中，检测到多个人脸框，只有最大的人脸才会送去识别
 

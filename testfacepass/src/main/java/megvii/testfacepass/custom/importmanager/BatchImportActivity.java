@@ -1,13 +1,21 @@
 package megvii.testfacepass.custom.importmanager;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.CursorLoader;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -15,8 +23,11 @@ import android.widget.Toast;
 
 import com.lee.zbardemo.Util;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 import java.io.File;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -37,9 +48,9 @@ import megvii.testfacepass.MainActivity;
 import megvii.testfacepass.R;
 import megvii.testfacepass.camera.CameraPreviewData;
 import megvii.testfacepass.custom.db.DbOpt;
-
-import static java.net.Socket.setSocketImplFactory;
-
+import megvii.testfacepass.custom.httpserver.HttpServer;
+import megvii.testfacepass.custom.httpserver.ImageData;
+import megvii.testfacepass.utils.FileUtil;
 
 /**
  * 批量导入
@@ -52,23 +63,27 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private final String DELIMITER = "-";
     private final int WIDTH_MAX = 2560;
     private final int HEIGHT_MAX = 2560;
+    private static final int REQUEST_CODE_CHOOSE_PICK = 1;
     private ExecutorService mExecutorService;
     private Future mFuture;
     private Toast toast;
 
     // view
-    private Button mAddFace;
-    private Button mRegister;
-    private Button mGet;
-    private Button mDelete;
-    private Button mRename;
-    private Button mDeleteFile;
-    private Button mDeleteSuccess;
-    private Button mDeleteFailed;
+    private EditText mFaceImagePath;
+    private Button mBtnDetectFace;
+    private Button mBtnChoosePic;
+    private Button mBtnAddFace;
+    private Button mBtnRegister;
+    private Button mBtnGet;
+    private Button mBtnDelete;
+    private Button mBtnRename;
+    private Button mBtnDeleteFile;
+    private Button mBtnDeleteSuccess;
+    private Button mBtnDeleteFailed;
     private Button mButtonImport;
-    private Button mTest;
-    private Button mExtract;
-    private Button mDbAdd, mDbDelete, mDbUpdate, mDbQuery;
+    private Button mBtnTest;
+    private Button mBtnExtract;
+    private Button mBtnDbAdd, mBtnDbDelete, mBtnDbUpdate, mBtnDbQuery;
     private RelativeLayout mRelativeContent;    // 显示说明的布局
     private RelativeLayout mRelativeImport;     // 显示进度的布局
     private RelativeLayout mRelativeFinish;     // 显示结果的布局
@@ -113,9 +128,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //    private ArrayList<Boolean> mRecognizeResult;
     private boolean mFeedFrameFinish;
     private int mFeedFrameTotalCount, mFeedFrameSuccessCount, mRecognizeTotalCount;
+    private HttpServer mHttpServer;
+    private boolean mFirstRun = false;
 
     @Override
-
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_batch_import);
@@ -126,16 +142,44 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 
     @Override
     protected void onResume() {
+        Log.e(TAG, "onResume-----------------------");
         checkGroup();  //检查底库是否存在
         startRecognize();
+        //启动http server
+        if (mHttpServer == null) {
+            mHttpServer = new HttpServer();
+        }
+        try {
+            // 启动web服务
+            if (!mHttpServer.isAlive()) {
+                mHttpServer.start();
+            }
+            Log.i(TAG, "The server started.");
+        } catch (Exception e) {
+            mHttpServer.stop();
+            Log.e(TAG, "The server could not start. e = " + e.toString());
+        }
         super.onResume();
+        Log.e(TAG, "register begin");
+        EventBus.getDefault().register(this);
+        Log.e(TAG, "register end");
     }
 
     @Override
     protected void onPause() {
+        Log.e(TAG, "onPause-----------------------");
         stopRecognize();
         mDetectResultQueue.clear();
+        //停止http server
+        if (null != mHttpServer) {
+            if (mHttpServer.isAlive()) {
+                mHttpServer.stop();
+            }
+        }
         super.onPause();
+        Log.e(TAG, "unregister begin");
+        EventBus.getDefault().unregister(this);
+        Log.e(TAG, "unregister end");
     }
 
     @Override
@@ -147,38 +191,43 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
 
     private void initView() {
+        mFaceImagePath = (EditText) findViewById(R.id.et_face_image_path);
+        mBtnDetectFace = (Button) findViewById(R.id.btn_detect_face);
+        mBtnDetectFace.setOnClickListener(this);
+        mBtnChoosePic = (Button) findViewById(R.id.btn_choose_picture);
+        mBtnChoosePic.setOnClickListener(this);
         Button buttonBack = (Button) findViewById(R.id.button_import_back);
         buttonBack.setOnClickListener(this);
-        mAddFace = (Button) findViewById(R.id.button_addface);
-        mAddFace.setOnClickListener(this);
-        mRegister = (Button) findViewById(R.id.button_register);
-        mRegister.setOnClickListener(this);
-        mGet = (Button) findViewById(R.id.button_get);
-        mGet.setOnClickListener(this);
-        mDelete = (Button) findViewById(R.id.button_delete);
-        mDelete.setOnClickListener(this);
-        mRename = (Button) findViewById(R.id.button_rename);
-        mRename.setOnClickListener(this);
-        mDeleteFile = (Button) findViewById(R.id.button_delete_file);
-        mDeleteFile.setOnClickListener(this);
-        mDeleteSuccess = (Button) findViewById(R.id.button_delete_success);
-        mDeleteSuccess.setOnClickListener(this);
-        mDeleteFailed = (Button) findViewById(R.id.button_delete_failed);
-        mDeleteFailed.setOnClickListener(this);
+        mBtnAddFace = (Button) findViewById(R.id.button_addface);
+        mBtnAddFace.setOnClickListener(this);
+        mBtnRegister = (Button) findViewById(R.id.button_register);
+        mBtnRegister.setOnClickListener(this);
+        mBtnGet = (Button) findViewById(R.id.button_get);
+        mBtnGet.setOnClickListener(this);
+        mBtnDelete = (Button) findViewById(R.id.button_delete);
+        mBtnDelete.setOnClickListener(this);
+        mBtnRename = (Button) findViewById(R.id.button_rename);
+        mBtnRename.setOnClickListener(this);
+        mBtnDeleteFile = (Button) findViewById(R.id.button_delete_file);
+        mBtnDeleteFile.setOnClickListener(this);
+        mBtnDeleteSuccess = (Button) findViewById(R.id.button_delete_success);
+        mBtnDeleteSuccess.setOnClickListener(this);
+        mBtnDeleteFailed = (Button) findViewById(R.id.button_delete_failed);
+        mBtnDeleteFailed.setOnClickListener(this);
         mButtonImport = (Button) findViewById(R.id.button_import);
         mButtonImport.setOnClickListener(this);
-        mTest = (Button) findViewById(R.id.button_test);
-        mTest.setOnClickListener(this);
-        mExtract = (Button) findViewById(R.id.button_extract);
-        mExtract.setOnClickListener(this);
-        mDbAdd = (Button) findViewById(R.id.button_db_add);  //数据库增加数据按钮
-        mDbAdd.setOnClickListener(this);
-        mDbDelete = (Button) findViewById(R.id.button_db_delete);  //数据库删除数据按钮
-        mDbDelete.setOnClickListener(this);
-        mDbUpdate = (Button) findViewById(R.id.button_db_update);  //数据库更新数据按钮
-        mDbUpdate.setOnClickListener(this);
-        mDbQuery = (Button) findViewById(R.id.button_db_query);  //数据库查询数据按钮
-        mDbQuery.setOnClickListener(this);
+        mBtnTest = (Button) findViewById(R.id.button_test);
+        mBtnTest.setOnClickListener(this);
+        mBtnExtract = (Button) findViewById(R.id.button_extract);
+        mBtnExtract.setOnClickListener(this);
+        mBtnDbAdd = (Button) findViewById(R.id.button_db_add);  //数据库增加数据按钮
+        mBtnDbAdd.setOnClickListener(this);
+        mBtnDbDelete = (Button) findViewById(R.id.button_db_delete);  //数据库删除数据按钮
+        mBtnDbDelete.setOnClickListener(this);
+        mBtnDbUpdate = (Button) findViewById(R.id.button_db_update);  //数据库更新数据按钮
+        mBtnDbUpdate.setOnClickListener(this);
+        mBtnDbQuery = (Button) findViewById(R.id.button_db_query);  //数据库查询数据按钮
+        mBtnDbQuery.setOnClickListener(this);
         mRelativeContent = (RelativeLayout) findViewById(R.id.relative_content);
         mRelativeImport = (RelativeLayout) findViewById(R.id.relative_progress);
         mRelativeFinish = (RelativeLayout) findViewById(R.id.relative_finish);
@@ -214,7 +263,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //        mDetectResultQueue = new ArrayBlockingQueue<byte[]>(5);
         mDetectResultQueue = new ArrayBlockingQueue<RecognizeData>(5);
 //        mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
-        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(2);
+        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(6);
         mRecognizeQueue = new ArrayBlockingQueue<Boolean>(1);
         mFeedFrameResult = new ArrayList<Boolean>(2);
 //        mRecognizeResult = new ArrayList<Boolean>(2);
@@ -290,8 +339,57 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 release();
                 finish();
                 break;
-
+            case R.id.btn_choose_picture:
+                Intent intentFromGallery = new Intent(Intent.ACTION_GET_CONTENT);
+                intentFromGallery.setType("image/*"); // 设置文件类型
+                intentFromGallery.addCategory(Intent.CATEGORY_OPENABLE);
+                try {
+                    startActivityForResult(intentFromGallery, REQUEST_CODE_CHOOSE_PICK);
+                } catch (ActivityNotFoundException e) {
+                    toast("请安装相册或者文件管理器");
+                }
+                break;
+            case R.id.btn_detect_face:
+                detectFace();
+                break;
             default:
+                break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            //从相册选取照片后读取地址
+            case REQUEST_CODE_CHOOSE_PICK:
+                if (resultCode == RESULT_OK) {
+                    String path = "";
+                    Uri uri = data.getData();
+                    String[] pojo = {MediaStore.Images.Media.DATA};
+                    CursorLoader cursorLoader = new CursorLoader(this, uri, pojo, null, null, null);
+                    Cursor cursor = cursorLoader.loadInBackground();
+                    if (cursor != null) {
+                        cursor.moveToFirst();
+                        path = cursor.getString(cursor.getColumnIndex(pojo[0]));
+                    }
+                    if (!TextUtils.isEmpty(path) && "file".equalsIgnoreCase(uri.getScheme())) {
+                        path = uri.getPath();
+                    }
+                    if (TextUtils.isEmpty(path)) {
+                        try {
+                            path = FileUtil.getPath(getApplicationContext(), uri);
+                        } catch (Exception e) {
+                        }
+                    }
+                    if (TextUtils.isEmpty(path)) {
+                        toast("图片选取失败！");
+                        return;
+                    }
+                    if (!TextUtils.isEmpty(path)) {
+                        mFaceImagePath.setText(path);
+                    }
+                }
                 break;
         }
     }
@@ -507,10 +605,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     showProgressView();
                     mTotalCount = picFiles.length;
                     //调整rotation
-                    if (!modifyRotation()) {
-                        Log.e(TAG, "setConfig failed");
-                        return;
-                    }
+//                    if (!modifyRotation()) {
+//                        Log.e(TAG, "setConfig failed");
+//                        return;
+//                    }
                     for (int i = 0; i < picFiles.length; i++) {
                         Log.i(TAG, "i:" + i);
                         // 获取图片名
@@ -627,9 +725,9 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                         }
                     }
                     //恢复rotation
-                    if (!resumeRotation()) {
-                        Log.e("addface", "setAddFaceConfig1 failed");
-                    }
+//                    if (!resumeRotation()) {
+//                        Log.e("addface", "setAddFaceConfig1 failed");
+//                    }
                 }
                 Log.i(TAG, "addFace finish！");
                 // 导入完成
@@ -644,16 +742,16 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             return ret;
         }
         //调整rotation
-        if (!modifyRotation()) {
-            Log.e(TAG, "setConfig failed");
-            return ret;
-        }
+//        if (!modifyRotation()) {
+//            Log.e(TAG, "setConfig failed");
+//            return ret;
+//        }
         Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
         ret = isFaceExist(mFacePassHandler, bitmap, bitmap.getWidth(), bitmap.getHeight(), FileUtils.getTimestampName());
         //恢复rotation
-        if (!resumeRotation()) {
-            Log.e("addface", "setAddFaceConfig1 failed");
-        }
+//        if (!resumeRotation()) {
+//            Log.e("addface", "setAddFaceConfig1 failed");
+//        }
         return ret;
     }
 
@@ -896,21 +994,16 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 Log.i(TAG, "test");
                 test1();
                 Log.i(TAG, "jpgFeedFrame");
-                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 0);
-                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 90);
-                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 180);
-                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg", 640, 480, 270);
+                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg");
+                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg");
 
-                if (!jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg", 720, 1280, 90)) {
-                    jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg", 720, 1280, 90);
+                if (!jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg")) {
+                    jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg");
                 }
-                jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg", 720, 1280, 180);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg", 720, 1280, 270);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg", 720, 1280, 0);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg", 640, 640, 0);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg", 640, 640, 90);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg", 640, 640, 180);
-                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg", 640, 640, 270);
+                jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg");
+                jpgFeedFrame("/storage/emulated/0/Face-Import/1111-facepass.jpg");
+                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg");
+                jpgFeedFrame("/storage/emulated/0/Face-Import/2020071601394600025-facepass.jpg");
                 Log.i(TAG, "test finish!");
                 new Thread(new Runnable() {
                     @Override
@@ -937,12 +1030,35 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
 
     private void test() {
-        String str;
+        if (null == mExecutorService) {
+            mExecutorService = Executors.newSingleThreadExecutor();
+        }
+        mFuture = mExecutorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                String str;
 
-        str = "71 4a 31 dd 9b d2 3d 58 65 10 b5 d6 58 0b 1e 83 f5 26 c1 bb 5a 21 f5 e6 e6 19 6c 65 bb b9 e1 73 77 da 3c ee 2f ef 45 96 85 2f 52 78 3f 59 2e b9 f7 41 eb 05 eb 55 55 96 1b 93 ab d4 2b 6d 81 70 ef 91 1b 71 a8 cb 14 26 39 34 63 89 ad 9e c8 70 0d b9 54 88 80 56 62 74 59 fc c1 93 83 eb 95 bc d0 05 be 7e dd ba 4a c4 48 4a 41 ff 37 8d 0b ec df 36 e2 69 a3 91 bc 93 8e db 8a 3d 73 59 dc 85 a0 cf 48 5c ef 5b cb f7 b9 d9 29 26 15 1d cc f5 32 a6 42 a2 4a 61 54 a2 8f 9f e6 8f 12 8a 10 fb d6 b0 9f fb 3d 4f 65 3c 5e 3e f2 9e 26 01 b8 a2 60 12 4b a5 54 ae 58 cf bb 5c 24 32 d1 c8 5a e6 d2 82 91 a3 85 c3 aa d1 b1 a5 b5 62 8d 51 14 34 48 b8 74 22 3f cc a7 34 6e 5c 68 0b d1 e3 67 ee 03 fc 91 b1 37 41 af 17 af 8a 0e 6f f9 5f f2 b6 7a d5 33 f4 25 14 47 e3 4c 58 fe 40 b0 ce 43 aa 29 5e 1f dd 10 0e 25 94 5a 43 e7 c1 84 b4 03 39 81 75 4b fb dc 1a d8 13 01 5f 53 ae a5 ff 3b b6 54 1f f6 b9 26 bc 6a 71 5d 6c cb a2 58 24 8d 11 82 ff ac 06 5b a4 bb 83 b9 ca 3d ae 04 e1 d9 81 81 e4 41 ef f6 43 62 bf 70 45 ad 4e 82 21 66 8c e1 3f 81 10 a8 c0 c1 d6 ba 25 65 22 24 74 5e ce 5e 29 17 65 2a 77 ca 49 e7 5a 08 2e c6 e9 0e 19 8d c3 1f f8 40 a9 b9 88 f2 6e ab 2c 21 b4 77 9e 4b 1b e2 ee c6 c6 9c 45 46 d0 5e 81 12 56 8d fc bb a5 f2 48 f3 b6 71 d6 10 60 2a 2e dd bb 03 61 29 47 cb b0 44 8c f1 e7 1f 8d 53 58 5f 63 ad 0f c0 f0 48 94 11 2d 0c 92 5e 1e c2 0e a8 17 63 ca a0 dd 05 d8 d4 6a 74 a7 25 38 8c 37 32 64 81 35 af ea 56 8f 87 1b 3d e6 23 af ed 19 0f 4b 0e 58 57 8a 2e 3f 4c 2a ee 3e 42 e1 65 71 e4 97 bf cd 22 c8 96 28 dc 9c e1 f6 73 ff b5 83 23 f1 d2 59 ";
-        InsertFeatureBindGroup(str);
-        str = "48 12 7e d9 60 fe 9e 4c 63 09 af 3d 5d c9 dd b5 30 30 e3 bc 56 07 27 cf 1c 1c 84 95 bd a3 dd 59 a3 02 11 a5 2d cb 8a a9 77 cf ad 5e 06 be c8 29 fd 5a 1e 39 2e 9f 0c 04 39 a7 00 d2 3a 89 8f ac cb 50 f3 80 57 e5 f9 c6 cf d0 32 78 7d 8f cf 90 ef f0 4d 80 a7 a5 70 b9 63 06 39 b4 a3 c6 8b 41 e5 1f ad 82 e5 85 af 2d 20 6e 6c 0f eb 95 01 02 7d c5 db 81 4a 94 75 8b af 0a 71 3d 77 b2 da e4 9d d4 25 8a 18 b7 25 18 45 f9 d2 06 1f 24 32 20 2e 4a 6a 8f b1 43 4c a0 64 47 1a 99 cd 75 c8 18 2c 89 6d da 09 a2 91 30 94 20 0f 51 19 37 47 5d 28 cc e4 41 4c 8f 5a ec 61 6e 3a ff f8 e2 80 24 dd 52 9a 10 bc 17 54 38 41 bf b2 5b 56 55 3b 16 ba 9e 4e fc 07 9c b7 c6 d1 b7 8a d4 89 24 5e 04 0f 22 68 6d 47 52 7a 2d ae 47 1d b3 d0 52 c1 52 5d 23 1f e3 08 e5 91 e9 ac 55 e0 b9 46 00 56 9f cd 51 fa f2 e4 d0 1f 79 a5 6d 1b e9 71 aa fd 35 65 b9 68 06 f1 05 f5 d1 bd 69 3c 54 5f d1 1a 51 92 e4 0c b3 f5 5c 43 97 ac 67 fa 48 b6 1a f4 a5 51 ce bd 2a b5 a0 6b 4b 70 3b 95 57 78 d8 3f 73 bb 3b bf c9 f8 a9 61 b3 ac 85 6a 84 97 08 9f ac ef 22 7e f4 76 05 28 20 f4 d4 94 26 89 43 a3 a5 95 dd 1f 73 0b 44 f3 02 25 44 d2 8d 68 fd d7 06 58 c7 c4 14 a1 63 52 b7 3c 6b 56 e9 7f 63 8d 91 1b ad 13 19 21 da 42 8a 61 2e fc fe fb 63 5a 25 7f b8 0c 55 fe 55 8c 3c e2 85 d0 26 f2 42 15 04 d4 46 ea 78 83 bf eb fe fb 57 9b ba ef b2 78 e0 e4 3f 72 d4 02 ff fd 6d 4d ff 0f c4 9c cc af 04 b7 c2 08 86 1a 9f a8 bb 14 54 76 2b 3d 85 81 d2 ba 11 b2 6d 82 06 3f 11 f2 70 dc 01 28 78 f8 79 5d 71 d9 e2 a3 e7 ef 1b 57 cd 69 53 c5 99 56 c6 c9 d2 b8 f0 f8 47 e8 b0 b7 3d a1 bc 30 07 00 35 ";
-        InsertFeatureBindGroup(str);
+                str = "71 4a 31 dd 9b d2 3d 58 65 10 b5 d6 58 0b 1e 83 f5 26 c1 bb 5a 21 f5 e6 e6 19 6c 65 bb b9 e1 73 77 da 3c ee 2f ef 45 96 85 2f 52 78 3f 59 2e b9 f7 41 eb 05 eb 55 55 96 1b 93 ab d4 2b 6d 81 70 ef 91 1b 71 a8 cb 14 26 39 34 63 89 ad 9e c8 70 0d b9 54 88 80 56 62 74 59 fc c1 93 83 eb 95 bc d0 05 be 7e dd ba 4a c4 48 4a 41 ff 37 8d 0b ec df 36 e2 69 a3 91 bc 93 8e db 8a 3d 73 59 dc 85 a0 cf 48 5c ef 5b cb f7 b9 d9 29 26 15 1d cc f5 32 a6 42 a2 4a 61 54 a2 8f 9f e6 8f 12 8a 10 fb d6 b0 9f fb 3d 4f 65 3c 5e 3e f2 9e 26 01 b8 a2 60 12 4b a5 54 ae 58 cf bb 5c 24 32 d1 c8 5a e6 d2 82 91 a3 85 c3 aa d1 b1 a5 b5 62 8d 51 14 34 48 b8 74 22 3f cc a7 34 6e 5c 68 0b d1 e3 67 ee 03 fc 91 b1 37 41 af 17 af 8a 0e 6f f9 5f f2 b6 7a d5 33 f4 25 14 47 e3 4c 58 fe 40 b0 ce 43 aa 29 5e 1f dd 10 0e 25 94 5a 43 e7 c1 84 b4 03 39 81 75 4b fb dc 1a d8 13 01 5f 53 ae a5 ff 3b b6 54 1f f6 b9 26 bc 6a 71 5d 6c cb a2 58 24 8d 11 82 ff ac 06 5b a4 bb 83 b9 ca 3d ae 04 e1 d9 81 81 e4 41 ef f6 43 62 bf 70 45 ad 4e 82 21 66 8c e1 3f 81 10 a8 c0 c1 d6 ba 25 65 22 24 74 5e ce 5e 29 17 65 2a 77 ca 49 e7 5a 08 2e c6 e9 0e 19 8d c3 1f f8 40 a9 b9 88 f2 6e ab 2c 21 b4 77 9e 4b 1b e2 ee c6 c6 9c 45 46 d0 5e 81 12 56 8d fc bb a5 f2 48 f3 b6 71 d6 10 60 2a 2e dd bb 03 61 29 47 cb b0 44 8c f1 e7 1f 8d 53 58 5f 63 ad 0f c0 f0 48 94 11 2d 0c 92 5e 1e c2 0e a8 17 63 ca a0 dd 05 d8 d4 6a 74 a7 25 38 8c 37 32 64 81 35 af ea 56 8f 87 1b 3d e6 23 af ed 19 0f 4b 0e 58 57 8a 2e 3f 4c 2a ee 3e 42 e1 65 71 e4 97 bf cd 22 c8 96 28 dc 9c e1 f6 73 ff b5 83 23 f1 d2 59 ";
+                InsertFeatureBindGroup(str);
+                str = "48 12 7e d9 60 fe 9e 4c 63 09 af 3d 5d c9 dd b5 30 30 e3 bc 56 07 27 cf 1c 1c 84 95 bd a3 dd 59 a3 02 11 a5 2d cb 8a a9 77 cf ad 5e 06 be c8 29 fd 5a 1e 39 2e 9f 0c 04 39 a7 00 d2 3a 89 8f ac cb 50 f3 80 57 e5 f9 c6 cf d0 32 78 7d 8f cf 90 ef f0 4d 80 a7 a5 70 b9 63 06 39 b4 a3 c6 8b 41 e5 1f ad 82 e5 85 af 2d 20 6e 6c 0f eb 95 01 02 7d c5 db 81 4a 94 75 8b af 0a 71 3d 77 b2 da e4 9d d4 25 8a 18 b7 25 18 45 f9 d2 06 1f 24 32 20 2e 4a 6a 8f b1 43 4c a0 64 47 1a 99 cd 75 c8 18 2c 89 6d da 09 a2 91 30 94 20 0f 51 19 37 47 5d 28 cc e4 41 4c 8f 5a ec 61 6e 3a ff f8 e2 80 24 dd 52 9a 10 bc 17 54 38 41 bf b2 5b 56 55 3b 16 ba 9e 4e fc 07 9c b7 c6 d1 b7 8a d4 89 24 5e 04 0f 22 68 6d 47 52 7a 2d ae 47 1d b3 d0 52 c1 52 5d 23 1f e3 08 e5 91 e9 ac 55 e0 b9 46 00 56 9f cd 51 fa f2 e4 d0 1f 79 a5 6d 1b e9 71 aa fd 35 65 b9 68 06 f1 05 f5 d1 bd 69 3c 54 5f d1 1a 51 92 e4 0c b3 f5 5c 43 97 ac 67 fa 48 b6 1a f4 a5 51 ce bd 2a b5 a0 6b 4b 70 3b 95 57 78 d8 3f 73 bb 3b bf c9 f8 a9 61 b3 ac 85 6a 84 97 08 9f ac ef 22 7e f4 76 05 28 20 f4 d4 94 26 89 43 a3 a5 95 dd 1f 73 0b 44 f3 02 25 44 d2 8d 68 fd d7 06 58 c7 c4 14 a1 63 52 b7 3c 6b 56 e9 7f 63 8d 91 1b ad 13 19 21 da 42 8a 61 2e fc fe fb 63 5a 25 7f b8 0c 55 fe 55 8c 3c e2 85 d0 26 f2 42 15 04 d4 46 ea 78 83 bf eb fe fb 57 9b ba ef b2 78 e0 e4 3f 72 d4 02 ff fd 6d 4d ff 0f c4 9c cc af 04 b7 c2 08 86 1a 9f a8 bb 14 54 76 2b 3d 85 81 d2 ba 11 b2 6d 82 06 3f 11 f2 70 dc 01 28 78 f8 79 5d 71 d9 e2 a3 e7 ef 1b 57 cd 69 53 c5 99 56 c6 c9 d2 b8 f0 f8 47 e8 b0 b7 3d a1 bc 30 07 00 35 ";
+                InsertFeatureBindGroup(str);
+
+                FacePassConfig config = mFacePassHandler.getConfig();
+                Log.e(TAG, "rotation:" + config.rotation);
+//        jpgFeedFrame("/storage/emulated/0/DCIM/Camera/qiub4_small.jpg", 589, 738, 0);
+//                jpgFeedFrame("/storage/emulated/0/DCIM/Camera/qiub4.jpg", 2076, 2432, 0);
+                jpgFeedFrame("/storage/emulated/0/DCIM/Camera/qiub1.jpg");
+                jpgFeedFrame("/storage/emulated/0/DCIM/Camera/qiub1.jpg");
+                Log.i(TAG, "jpgFeedFrame 1 end");
+                jpgFeedFrame("/storage/emulated/0/MyImage/20200717090502-00000000.jpg");
+                jpgFeedFrame("/storage/emulated/0/MyImage/1111-facepass.jpg");
+
+//                jpgFeedFrame("/storage/emulated/0/MyImage/qiub4_small.jpg");  //qq截图
+                jpgFeedFrame("/storage/emulated/0/MyImage/qiub1.jpg");
+//                jpgFeedFrame("/storage/emulated/0/MyImage/qiub1_small.jpg");  //qq截图
+                jpgFeedFrame("/storage/emulated/0/MyImage/qiub1_small1.jpg");  //微信截图
+            }
+        });
     }
     private boolean InsertFeatureBindGroup(String feature) {
         boolean ret = false;
@@ -1030,17 +1146,22 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
 
 //blur:0.20032844,brightness:68.83499,deviation:28.312532,pitch:-2.4827423,roll:6.9652085,yaw:0.15141112,left:230,right:464,top:285,bottom:519
-    private boolean jpgFeedFrame(String path, final int width, final int height, final int rotation) {
+    private boolean jpgFeedFrame(String path/*, final int width, final int height, final int rotation*/) {
         boolean ret = false;
         if (isFacePassHandlerNull()) {
             return ret;
         }
-        Log.i(TAG, "path:" + path + ",rotation:" + rotation);
+        Log.i(TAG, "path:" + path);
         FacePassImage image;
         try {
-            byte[] bytes = ImageUtils.readJpgFileToByteArray(path, width, height);
-            Log.i("FeedFrameThread", "len:" + bytes.length);
-            image = new FacePassImage(bytes, width, height, rotation, FacePassImageType.NV21);
+            ImageUtils.JpgMsg jpgMsg = ImageUtils.readJpgFileToByteArray(path/*, width, height*/);
+            int len = jpgMsg.getByteArr().length;
+            Log.i("FeedFrameThread", "len:" + len);
+            if (len > 0) {
+                image = new FacePassImage(jpgMsg.getByteArr(), jpgMsg.getWidth(), jpgMsg.getHeight(), 0, FacePassImageType.NV21);
+            } else {
+                return ret;
+            }
         } catch (FacePassException e) {
             e.printStackTrace();
             return ret;
@@ -1160,6 +1281,12 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mFeedFrameThread1.start();
         mRecognizeThread1.isInterrupt = false;
         mRecognizeThread1.start();
+        //调整rotation 从0-->90
+        if (!modifyRotation()) {
+            Log.e(TAG, "setConfig failed");
+        } else {
+            Log.e(TAG, "setConfig success");
+        }
     }
 
     private void stopRecognize() {
@@ -1167,6 +1294,12 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mFeedFrameThread1.interrupt();
         mRecognizeThread1.isInterrupt = true;
         mRecognizeThread1.interrupt();
+        //恢复rotation
+        if (!resumeRotation()) {
+            Log.e(TAG, "setAddFaceConfig failed");
+        } else {
+            Log.e(TAG, "setAddFaceConfig success");
+        }
     }
 
     private void checkGroup() {  //检查底库是否存在
@@ -1280,7 +1413,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 }
                 FacePassImage image;
                 try {
-                    Log.i(FeedFrameThreadTAG, "FacePassImage");
+                    FacePassConfig config = mFacePassHandler.getConfig();
+                    Log.i(FeedFrameThreadTAG, "rotation:" + mCamerarotation + ",rotation1:" + config.rotation);
                     cameraPreviewData = feedFrameData.getCameraPreviewData();
                     image = new FacePassImage(cameraPreviewData.nv21Data, cameraPreviewData.width, cameraPreviewData.height, mCamerarotation, FacePassImageType.NV21);
                 } catch (FacePassException e) {
@@ -1330,9 +1464,9 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         @Override
         public void interrupt() {
             Log.e(FeedFrameThreadTAG, "interrupt");
-            if (!resumeRotation()) {
-                Log.e(FeedFrameThreadTAG, "setAddFaceConfig1 failed");
-            }
+//            if (!resumeRotation()) {
+//                Log.e(FeedFrameThreadTAG, "setAddFaceConfig1 failed");
+//            }
             isInterrupt = true;
             super.interrupt();
         }
@@ -1438,5 +1572,55 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
     private void dbQuery() {
         DbOpt.Companion.query();
+    }
+
+    private void detectFace() {
+        String imagePath = mFaceImagePath.getText().toString();
+        if (TextUtils.isEmpty(imagePath)) {
+            toast("请输入正确的图片路径！");
+            return;
+        }
+
+        File imageFile = new File(imagePath);
+        if (!imageFile.exists()) {
+            toast("图片不存在 ！");
+            return;
+        }
+        String str = ImageUtils.readJpgFileToBase64(imagePath);
+        Log.i(TAG, "base64 len:" + str.length());
+        LogUtils.e(TAG, "base64:" + str);
+        Log.i(TAG, "jpgFeedFrame 1 begin");
+        //图片送检测
+        jpgFeedFrame(imagePath);
+    }
+
+    @Subscribe(threadMode = ThreadMode.ASYNC)
+    public void imageProc(ImageData data) {
+        Log.i(TAG, "subscribe");
+        Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
+        if (null != bitmap) {
+            //插入一帧无人脸图片
+//            ImageUtils.JpgMsg jpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
+//            if (jpgMsg.getByteArr().length > 0) {
+//                addRgbFrame(jpgMsg.getByteArr().clone(), jpgMsg.getWidth(), jpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//            }
+
+            boolean ret = false;
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            Log.i("addface", "bitmapToNv21");
+            byte[] bytes = ImageUtils.bitmapToNv21(bitmap, width, height);
+            Log.i("addface", "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
+            if (isFacePassHandlerNull()) {
+                return;
+            }
+//            mFacePassHandler.reset();   //reset  不能每送一帧都reset，否则永远无法识别到人脸
+            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+            Log.i(TAG, "addRgbFrame");
+        } else {
+            Log.e(TAG, "bitmap is null");
+        }
     }
 }

@@ -1143,7 +1143,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
             case R.id.btn_group_name:
                 showSyncGroupDialog();
                 break;
-            case R.id.btn_face_operation:
+            case R.id.btn_face_operation:  //人脸
                 showAddFaceDialog();
                 break;
             case R.id.btn_import:

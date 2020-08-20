@@ -68,6 +68,44 @@
     </RelativeLayout>
 
     <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="2dp"
+        android:layout_below="@+id/relative_content">
+        <Button
+            android:id="@+id/btn_detect_face"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:background="@drawable/shape_btn_bg_blue"
+            android:text="检测人脸"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/btn_choose_picture"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@id/btn_detect_face"
+            android:background="@drawable/shape_btn_bg_blue"
+            android:text="选取图片"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/et_face_image_path"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/btn_detect_face"
+            android:layout_alignTop="@id/btn_detect_face"
+            android:layout_toLeftOf="@id/btn_choose_picture"
+            android:background="@drawable/shape_bg_rect"
+            android:focusable="true"
+            android:text="/sdcard/test3.jpeg"
+            android:hint="添加图片地址" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
         android:id="@+id/relative_progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

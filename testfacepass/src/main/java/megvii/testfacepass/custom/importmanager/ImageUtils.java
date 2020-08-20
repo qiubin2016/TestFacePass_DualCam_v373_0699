@@ -6,6 +6,7 @@ import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.os.Environment;
+import android.util.Base64;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -15,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ImageUtils {
     private static final String TAG = ImageUtils.class.getSimpleName();
@@ -226,17 +228,57 @@ public class ImageUtils {
         return byteArr;
     }
 
-    public static byte[] readJpgFileToByteArray(String path, final int width, final int height) {
+    public static class JpgMsg {
+        private int width;
+        private int height;
+        private byte[] byteArr;
+
+        JpgMsg(final int width, final int height, byte[] byteArr) {
+            this.width = width;
+            this.height = height;
+            this.byteArr = byteArr;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+        public int getHeight() {
+            return height;
+        }
+
+        public byte[] getByteArr() {
+            return byteArr;
+        }
+    }
+    public static JpgMsg readJpgFileToByteArray(String path/*, final int width, final int height*/) {
         byte[] byteArr = new byte[0];
+        int width = 0;
+        int height = 0;
         File file = new File(path);
         if (file.exists()) {
             BitmapFactory.Options op = new BitmapFactory.Options();
             op.inPreferredConfig = Bitmap.Config.ARGB_8888;
             Bitmap bitmap = BitmapFactory.decodeFile(path, op);
             if (null != bitmap) {
+                width = bitmap.getWidth();
+                height = bitmap.getHeight();
                 byteArr = bitmapToNv21(bitmap, width, height);
             }
         }
-        return byteArr;
+        return new JpgMsg(width, height, byteArr) ;
+    }
+
+    public static String readJpgFileToBase64(String path) {
+        byte[] buf = new byte[0];
+        try {
+            buf = FileUtils.readFile(new File(path));
+//            LogUtils.e(TAG, "Base64 buf:" + Arrays.toString(buf));
+            byte[] base = Base64.encode(buf, Base64.NO_WRAP);
+//            LogUtils.e(TAG, "Base64 encode:" + Arrays.toString(buf));
+            return new String(base);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

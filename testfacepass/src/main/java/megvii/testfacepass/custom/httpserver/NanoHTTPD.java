@@ -605,12 +605,13 @@ public abstract class NanoHTTPD {
     protected class HTTPSession implements IHTTPSession {
 
 //        private static final int REQUEST_BUFFER_LEN = 512;
-        private static final int REQUEST_BUFFER_LEN = 1024 * 100;
+        private static final int REQUEST_BUFFER_LEN = 1024 * 50;
 
 //        private static final int MEMORY_STORE_LIMIT = 1024;
         private static final int MEMORY_STORE_LIMIT = 1024 * 1024 * 20;
 
-        public static final int BUFSIZE = 8192;
+//        public static final int BUFSIZE = 8192;
+        public static final int BUFSIZE = 1024 * 1024;
 
         public static final int MAX_HEADER_SIZE = 1024;
 

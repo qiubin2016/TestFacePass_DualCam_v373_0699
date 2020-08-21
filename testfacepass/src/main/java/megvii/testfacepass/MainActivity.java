@@ -1196,8 +1196,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
         }
 
         final String faceUrl = "http://" + serverIP + ":8080/api/image/v1/query?face_token=" + faceToken;
-
+        Log.e("test", "111");
         final Bitmap cacheBmp = mImageCache.getBitmap(faceUrl);
+        Log.e("test", "112");
         if (cacheBmp != null) {
             mAndroidHandler.post(new Runnable() {
                 @Override

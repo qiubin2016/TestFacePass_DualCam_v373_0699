@@ -10,7 +10,7 @@
         android:layout_height="60dp">
 
         <Button
-            android:id="@+id/button_import_back"
+            android:id="@+id/btn_import_back"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:layout_centerVertical="true"
@@ -68,6 +68,7 @@
     </RelativeLayout>
 
     <RelativeLayout
+        android:id="@+id/relative_edit"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -99,9 +100,24 @@
             android:layout_alignTop="@id/btn_detect_face"
             android:layout_toLeftOf="@id/btn_choose_picture"
             android:background="@drawable/shape_bg_rect"
-            android:focusable="true"
+            android:focusable="false"
             android:text="/sdcard/test3.jpeg"
             android:hint="添加图片地址" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/relative_display"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_below="@+id/relative_edit">
+
+        <ImageView
+            android:id="@+id/image_user"
+            android:layout_width="400dp"
+            android:layout_height="400dp"
+            android:layout_centerInParent="true"/>
 
     </RelativeLayout>
 
@@ -242,8 +258,8 @@
 
     </RelativeLayout>
     <Button
-        android:id="@+id/button_addface"
-        android:layout_above="@+id/button_import"
+        android:id="@+id/btn_addface"
+        android:layout_above="@+id/btn_import"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="5dp"
@@ -255,9 +271,9 @@
         android:textSize="16sp"
         />
     <Button
-        android:id="@+id/button_register"
-        android:layout_above="@+id/button_import"
-        android:layout_toRightOf="@+id/button_addface"
+        android:id="@+id/btn_register"
+        android:layout_above="@+id/btn_import"
+        android:layout_toRightOf="@+id/btn_addface"
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -270,9 +286,9 @@
         android:textSize="16sp"
         />
     <Button
-        android:id="@+id/button_get"
-        android:layout_above="@+id/button_import"
-        android:layout_toRightOf="@+id/button_register"
+        android:id="@+id/btn_get"
+        android:layout_above="@+id/btn_import"
+        android:layout_toRightOf="@+id/btn_register"
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -285,9 +301,9 @@
         android:textSize="16sp"
         />
     <Button
-        android:id="@+id/button_delete"
-        android:layout_above="@+id/button_import"
-        android:layout_toRightOf="@+id/button_get"
+        android:id="@+id/btn_delete"
+        android:layout_above="@+id/btn_import"
+        android:layout_toRightOf="@+id/btn_get"
         android:layout_marginBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -301,13 +317,13 @@
         />
 
     <Button
-        android:id="@+id/button_rename"
+        android:id="@+id/btn_rename"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/button_import"
+        android:layout_above="@+id/btn_import"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
-        android:layout_toRightOf="@+id/button_delete"
+        android:layout_toRightOf="@+id/btn_delete"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -315,13 +331,13 @@
         android:textColor="#fff"
         android:textSize="16sp" />
     <Button
-        android:id="@+id/button_delete_file"
+        android:id="@+id/btn_delete_file"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/button_import"
+        android:layout_above="@+id/btn_import"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
-        android:layout_toRightOf="@+id/button_rename"
+        android:layout_toRightOf="@+id/btn_rename"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -329,13 +345,13 @@
         android:textColor="#fff"
         android:textSize="16sp" />
     <Button
-        android:id="@+id/button_delete_success"
+        android:id="@+id/btn_delete_success"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/button_import"
+        android:layout_above="@+id/btn_import"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
-        android:layout_toRightOf="@+id/button_delete_file"
+        android:layout_toRightOf="@+id/btn_delete_file"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -343,13 +359,13 @@
         android:textColor="#fff"
         android:textSize="16sp" />
     <Button
-        android:id="@+id/button_delete_failed"
+        android:id="@+id/btn_delete_failed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/button_import"
+        android:layout_above="@+id/btn_import"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
-        android:layout_toRightOf="@+id/button_delete_success"
+        android:layout_toRightOf="@+id/btn_delete_success"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
@@ -358,10 +374,10 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_test"
+        android:id="@+id/btn_test"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/button_addface"
+        android:layout_above="@+id/btn_addface"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
         android:paddingLeft="10dp"
@@ -371,11 +387,11 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_extract"
+        android:id="@+id/btn_extract"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/button_test"
-        android:layout_above="@+id/button_addface"
+        android:layout_toRightOf="@+id/btn_test"
+        android:layout_above="@+id/btn_addface"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
@@ -386,10 +402,10 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_db_add"
+        android:id="@+id/btn_db_add"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
+        android:layout_above="@+id/btn_test"
         android:layout_marginLeft="0dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
@@ -399,11 +415,11 @@
         android:textColor="#fff"
         android:textSize="16sp" />
     <Button
-        android:id="@+id/button_db_delete"
+        android:id="@+id/btn_db_delete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/button_db_add"
+        android:layout_above="@+id/btn_test"
+        android:layout_toRightOf="@+id/btn_db_add"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
@@ -414,11 +430,11 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_db_update"
+        android:id="@+id/btn_db_update"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/button_db_delete"
+        android:layout_above="@+id/btn_test"
+        android:layout_toRightOf="@+id/btn_db_delete"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
@@ -429,11 +445,11 @@
     android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_db_query"
+        android:id="@+id/btn_db_query"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/button_db_update"
+        android:layout_above="@+id/btn_test"
+        android:layout_toRightOf="@+id/btn_db_update"
         android:layout_marginLeft="5dp"
         android:layout_marginBottom="5dp"
         android:background="@drawable/fillet_style_button_selector"
@@ -444,7 +460,7 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/button_import"
+        android:id="@+id/btn_import"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/imageView2"

@@ -10,12 +10,15 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -72,6 +75,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private EditText mFaceImagePath;
     private Button mBtnDetectFace;
     private Button mBtnChoosePic;
+    private ImageView mImageUser;
     private Button mBtnAddFace;
     private Button mBtnRegister;
     private Button mBtnGet;
@@ -130,6 +134,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private int mFeedFrameTotalCount, mFeedFrameSuccessCount, mRecognizeTotalCount;
     private HttpServer mHttpServer;
     private boolean mFirstRun = false;
+    private Handler mAndroidHandler;
+    private static final int MSG_SHOW_IMAGE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -196,37 +202,39 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mBtnDetectFace.setOnClickListener(this);
         mBtnChoosePic = (Button) findViewById(R.id.btn_choose_picture);
         mBtnChoosePic.setOnClickListener(this);
-        Button buttonBack = (Button) findViewById(R.id.button_import_back);
+        Button buttonBack = (Button) findViewById(R.id.btn_import_back);
         buttonBack.setOnClickListener(this);
-        mBtnAddFace = (Button) findViewById(R.id.button_addface);
+        mImageUser = (ImageView) findViewById(R.id.image_user);  //显示用户缩略图
+
+        mBtnAddFace = (Button) findViewById(R.id.btn_addface);
         mBtnAddFace.setOnClickListener(this);
-        mBtnRegister = (Button) findViewById(R.id.button_register);
+        mBtnRegister = (Button) findViewById(R.id.btn_register);
         mBtnRegister.setOnClickListener(this);
-        mBtnGet = (Button) findViewById(R.id.button_get);
+        mBtnGet = (Button) findViewById(R.id.btn_get);
         mBtnGet.setOnClickListener(this);
-        mBtnDelete = (Button) findViewById(R.id.button_delete);
+        mBtnDelete = (Button) findViewById(R.id.btn_delete);
         mBtnDelete.setOnClickListener(this);
-        mBtnRename = (Button) findViewById(R.id.button_rename);
+        mBtnRename = (Button) findViewById(R.id.btn_rename);
         mBtnRename.setOnClickListener(this);
-        mBtnDeleteFile = (Button) findViewById(R.id.button_delete_file);
+        mBtnDeleteFile = (Button) findViewById(R.id.btn_delete_file);
         mBtnDeleteFile.setOnClickListener(this);
-        mBtnDeleteSuccess = (Button) findViewById(R.id.button_delete_success);
+        mBtnDeleteSuccess = (Button) findViewById(R.id.btn_delete_success);
         mBtnDeleteSuccess.setOnClickListener(this);
-        mBtnDeleteFailed = (Button) findViewById(R.id.button_delete_failed);
+        mBtnDeleteFailed = (Button) findViewById(R.id.btn_delete_failed);
         mBtnDeleteFailed.setOnClickListener(this);
-        mButtonImport = (Button) findViewById(R.id.button_import);
+        mButtonImport = (Button) findViewById(R.id.btn_import);
         mButtonImport.setOnClickListener(this);
-        mBtnTest = (Button) findViewById(R.id.button_test);
+        mBtnTest = (Button) findViewById(R.id.btn_test);
         mBtnTest.setOnClickListener(this);
-        mBtnExtract = (Button) findViewById(R.id.button_extract);
+        mBtnExtract = (Button) findViewById(R.id.btn_extract);
         mBtnExtract.setOnClickListener(this);
-        mBtnDbAdd = (Button) findViewById(R.id.button_db_add);  //数据库增加数据按钮
+        mBtnDbAdd = (Button) findViewById(R.id.btn_db_add);  //数据库增加数据按钮
         mBtnDbAdd.setOnClickListener(this);
-        mBtnDbDelete = (Button) findViewById(R.id.button_db_delete);  //数据库删除数据按钮
+        mBtnDbDelete = (Button) findViewById(R.id.btn_db_delete);  //数据库删除数据按钮
         mBtnDbDelete.setOnClickListener(this);
-        mBtnDbUpdate = (Button) findViewById(R.id.button_db_update);  //数据库更新数据按钮
+        mBtnDbUpdate = (Button) findViewById(R.id.btn_db_update);  //数据库更新数据按钮
         mBtnDbUpdate.setOnClickListener(this);
-        mBtnDbQuery = (Button) findViewById(R.id.button_db_query);  //数据库查询数据按钮
+        mBtnDbQuery = (Button) findViewById(R.id.btn_db_query);  //数据库查询数据按钮
         mBtnDbQuery.setOnClickListener(this);
         mRelativeContent = (RelativeLayout) findViewById(R.id.relative_content);
         mRelativeImport = (RelativeLayout) findViewById(R.id.relative_progress);
@@ -269,13 +277,25 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //        mRecognizeResult = new ArrayList<Boolean>(2);
         mFeedFrameThread1 = new FeedFrameThread1();
         mRecognizeThread1 = new RecognizeThread1();
+
+//        mAndroidHandler = new Handler() {
+//            @Override
+//            public void handleMessage(Message msg) {
+//                super.handleMessage(msg);
+//                switch (msg.what) {
+//                    case MSG_SHOW_IMAGE:
+//
+//                        break;
+//                }
+//            }
+//        };
     }
 
     @Override
     public void onClick(View view) {
         Log.i(TAG, "===============================onclicked!" + view.getId());
         switch (view.getId()) {
-            case R.id.button_import:   // 点击导入数据按钮
+            case R.id.btn_import:   // 点击导入数据按钮
                 if (!mImporting) {
                     // 如果按钮文案是“搜索SD卡，并导入数据”，则执行批量导入操作
                     if ("搜索SD卡，并导入数据".equals(mButtonImport.getText().toString())) {
@@ -290,50 +310,50 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     }
                 }
                 break;
-            case R.id.button_addface:  //入库
+            case R.id.btn_addface:  //入库
                 addFace();
                 break;
-            case R.id.button_register: //向后台注册用户
+            case R.id.btn_register: //向后台注册用户
                 register();
                 break;
-            case R.id.button_get:
+            case R.id.btn_get:
                 get();
                 break;
-            case R.id.button_delete:
+            case R.id.btn_delete:
                 delete();
                 break;
-            case R.id.button_rename:
+            case R.id.btn_rename:
                 rename();
                 break;
-            case R.id.button_delete_file:
+            case R.id.btn_delete_file:
                 deleteFile();
                 break;
-            case R.id.button_delete_success:
+            case R.id.btn_delete_success:
                 deleteSuccess();
                 break;
-            case R.id.button_delete_failed:
+            case R.id.btn_delete_failed:
                 deleteFailed();
                 break;
-            case R.id.button_test:
+            case R.id.btn_test:
                 test();
                 break;
-            case R.id.button_extract:
+            case R.id.btn_extract:
 //                extract();
                 isFaceExist("/storage/emulated/0/DCIM/Camera/qiub4.jpg");
                 break;
-            case R.id.button_db_add:
+            case R.id.btn_db_add:
                 dbAdd();
                 break;
-            case R.id.button_db_delete:
+            case R.id.btn_db_delete:
                 dbDelete();
                 break;
-            case R.id.button_db_update:
+            case R.id.btn_db_update:
                 dbUpdate();
                 break;
-            case R.id.button_db_query:
+            case R.id.btn_db_query:
                 dbQuery();
                 break;
-            case R.id.button_import_back:
+            case R.id.btn_import_back:
                 // 释放
                 ImportFileManager.getInstance().release();
                 release();
@@ -1500,6 +1520,13 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                             for (FacePassRecognitionResult result : recognizeResult) {
                                 if (FacePassRecognitionResultType.RECOG_OK == result.facePassRecognitionResultType) {
                                     Log.e(RecognizeThreadTAG, "识别成功");
+                                    final Bitmap bitmap = mFacePassHandler.getFaceImage(result.faceToken);  //获取缩略图
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mImageUser.setImageBitmap(bitmap);  //显示缩略图
+                                        }
+                                    });
                                     ret = true;
                                 } else {
                                     Log.e(RecognizeThreadTAG, "识别失败1");

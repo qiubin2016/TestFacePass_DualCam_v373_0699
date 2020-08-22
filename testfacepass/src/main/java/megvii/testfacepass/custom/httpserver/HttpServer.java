@@ -27,7 +27,8 @@ public class HttpServer extends NanoHTTPD {
     private static int mId;
 
     public HttpServer() {
-        super(8082);
+//        super(8082);
+        super(65000);
         mImageQueue = new ArrayBlockingQueue<ImageData>(10);
         mId = 0;
         mWorkThread = new WorkThread();

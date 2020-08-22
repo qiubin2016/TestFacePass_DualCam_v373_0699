@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -32,6 +33,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +46,7 @@ import mcv.facepass.types.FacePassAddFaceResult;
 import mcv.facepass.types.FacePassConfig;
 import mcv.facepass.types.FacePassDetectionResult;
 import mcv.facepass.types.FacePassExtractFeatureResult;
+import mcv.facepass.types.FacePassFace;
 import mcv.facepass.types.FacePassImage;
 import mcv.facepass.types.FacePassImageType;
 import mcv.facepass.types.FacePassRecognitionResult;
@@ -50,6 +54,7 @@ import mcv.facepass.types.FacePassRecognitionResultType;
 import megvii.testfacepass.MainActivity;
 import megvii.testfacepass.R;
 import megvii.testfacepass.camera.CameraPreviewData;
+import megvii.testfacepass.custom.dataclass.DisplayData;
 import megvii.testfacepass.custom.db.DbOpt;
 import megvii.testfacepass.custom.httpserver.HttpServer;
 import megvii.testfacepass.custom.httpserver.ImageData;
@@ -76,6 +81,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private Button mBtnDetectFace;
     private Button mBtnChoosePic;
     private ImageView mImageUser;
+    private TextView mTextResult;
     private Button mBtnAddFace;
     private Button mBtnRegister;
     private Button mBtnGet;
@@ -135,7 +141,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private HttpServer mHttpServer;
     private boolean mFirstRun = false;
     private Handler mAndroidHandler;
-    private static final int MSG_SHOW_IMAGE = 1;
+    private static final int MSG_SHOW = 1;
+    private static final int MSG_CLEAR = 2;
+    private Timer mTimer;
+    private long mClearImageCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,6 +198,15 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        if (null != mTimer) {  //停止定时器
+            mTimer.cancel();
+            mTimer = null;
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // 释放
@@ -205,7 +223,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         Button buttonBack = (Button) findViewById(R.id.btn_import_back);
         buttonBack.setOnClickListener(this);
         mImageUser = (ImageView) findViewById(R.id.image_user);  //显示用户缩略图
-
+        mTextResult = (TextView) findViewById(R.id.text_result);  //显示识别结果
+//        mTextResult.setTextSize(20);  //设置字体大小
+//        mTextResult.setTextColor(Color.BLUE);  //设置字体颜色
+//        mTextResult.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));  //设置粗体
         mBtnAddFace = (Button) findViewById(R.id.btn_addface);
         mBtnAddFace.setOnClickListener(this);
         mBtnRegister = (Button) findViewById(R.id.btn_register);
@@ -271,24 +292,43 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //        mDetectResultQueue = new ArrayBlockingQueue<byte[]>(5);
         mDetectResultQueue = new ArrayBlockingQueue<RecognizeData>(5);
 //        mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
-        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(6);
+        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(10);
         mRecognizeQueue = new ArrayBlockingQueue<Boolean>(1);
         mFeedFrameResult = new ArrayList<Boolean>(2);
 //        mRecognizeResult = new ArrayList<Boolean>(2);
         mFeedFrameThread1 = new FeedFrameThread1();
         mRecognizeThread1 = new RecognizeThread1();
 
-//        mAndroidHandler = new Handler() {
-//            @Override
-//            public void handleMessage(Message msg) {
-//                super.handleMessage(msg);
-//                switch (msg.what) {
-//                    case MSG_SHOW_IMAGE:
-//
-//                        break;
-//                }
-//            }
-//        };
+        mAndroidHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                switch (msg.what) {
+                    case MSG_SHOW:
+                        msgShow(msg.obj);
+                        break;
+                    case MSG_CLEAR:
+                        mImageUser.setImageBitmap(null);  //清空缩略图
+                        mTextResult.setText("");
+                        break;
+                }
+            }
+        };
+        mTimer = new Timer();
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                if (0 != mClearImageCount) {
+                    mClearImageCount--;
+                    if (0 == mClearImageCount) {
+                        mAndroidHandler.sendEmptyMessage(MSG_CLEAR);  //发消息清空缩略图
+                    }
+                }
+            }
+        };
+        mTimer.schedule(task, 0, 100);  //100ms 周期定时器
+
+
     }
 
     @Override
@@ -411,6 +451,48 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     }
                 }
                 break;
+        }
+    }
+
+    private void msgShow(Object obj) {
+        if (null != obj) {
+            mClearImageCount = 10;  //10 * 100ms后清空缩略图
+            Bitmap bitmap = null;
+            DisplayData displayData = (DisplayData) obj;
+            FacePassRecognitionResult result = displayData.getResult();
+            try {
+                bitmap = mFacePassHandler.getFaceImage(result.faceToken);  //获取缩略图
+            } catch (FacePassException e) {
+                e.printStackTrace();
+            }
+            mImageUser.setImageBitmap(bitmap);  //显示缩略图
+            //id score errcode
+            final long trackId = result.trackId;
+            final float score = result.detail.searchScore;
+            final float extScore = result.detail.searchExtThreshold;
+            final int errCode = result.facePassRecognizeErrorCode;
+            String text = "";
+            StringBuilder stringBuilder;
+            if (trackId > 0) {
+                text += "ID: " + trackId + "\n";
+            }
+            if (score > 0) {
+                text += "识别分: " + score + "\n";
+            }
+            if (extScore > 0) {
+//                text += "戴口罩识别分: " + extScore + "\n";
+            }
+            if (0 != errCode) {
+                text += "错误码: " + errCode + "\n";
+            }
+            mTextResult.setText(text);
+            /*
+                    Log.e(TAG, "err code:" + result.facePassRecognizeErrorCode + ",track id:" + result.trackId
+                    + ",type:" + result.facePassRecognitionResultType);
+            Log.e(TAG, "score:" + result.detail.searchScore + ",threashold:" + result.detail.searchThreshold
+                    + ",ext:" + result.detail.searchExtThreshold + "\nliveness score:" + result.detail.livenessScore + ",threadshold:"
+                    + result.detail.livenessThreshold + "\nmouth valid:" + result.detail.mouthOccAttr.is_valid + ",status:"
+                    + result.detail.mouthOccAttr.mouth_occ_status);*/
         }
     }
 
@@ -1453,13 +1535,16 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     Log.e(FeedFrameThreadTAG, "无人脸");  /* 当前帧没有检出人脸 */
 
                 } else {
-                    Log.e(FeedFrameThreadTAG, "有人脸" + ",trackId:" + detectionResult.faceList[0].trackId);
+                    FacePassFace facePassFace = detectionResult.faceList[0];
+                    Log.e(FeedFrameThreadTAG, "有人脸" + ",trackId:" + facePassFace.trackId + ",errCode:" + facePassFace.facePassFeedFrameErrorCode
+                    + ",roll:" + facePassFace.pose.roll + ",pitch:" + facePassFace.pose.pitch + ",yaw:" + facePassFace.pose.yaw + ",blur:" + facePassFace.blur
+                    + ",ifIRPassed:" + facePassFace.ifIRPassed + ",mouth:" + facePassFace.mouthOccAttr.mouth_occ_status);
                     if (detectionResult.message.length != 0) {
                         Log.e(FeedFrameThreadTAG, "送识别");
                         mFeedFrameSuccessCount++;
                         Log.e(FeedFrameThreadTAG, "mDetectResultQueue.offer");
                         mDetectResultQueue.offer(new RecognizeData(detectionResult.message,
-                                detectionResult.faceList[0].trackId, feedFrameData.getName()));  //添加到识别队列
+                                facePassFace.trackId, feedFrameData.getName()));  //添加到识别队列
                         mTimeLock = true;  //锁定mStartTime，直到recognize完成
                         Log.i("]time", "mDetectResultQueue.offer");
                     } else {
@@ -1520,17 +1605,14 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                             for (FacePassRecognitionResult result : recognizeResult) {
                                 if (FacePassRecognitionResultType.RECOG_OK == result.facePassRecognitionResultType) {
                                     Log.e(RecognizeThreadTAG, "识别成功");
-                                    final Bitmap bitmap = mFacePassHandler.getFaceImage(result.faceToken);  //获取缩略图
-                                    runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mImageUser.setImageBitmap(bitmap);  //显示缩略图
-                                        }
-                                    });
                                     ret = true;
                                 } else {
                                     Log.e(RecognizeThreadTAG, "识别失败1");
                                 }
+                                Message msg = new Message();  //识别结果，发送消息送UI显示
+                                msg.what = MSG_SHOW;
+                                msg.obj = new DisplayData(result);
+                                mAndroidHandler.sendMessage(msg);
                                 showRecognizeReslt(result);  //打印识别结果
                             }
                         } else {
@@ -1626,13 +1708,6 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         Log.i(TAG, "subscribe");
         Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
         if (null != bitmap) {
-            //插入一帧无人脸图片
-//            ImageUtils.JpgMsg jpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
-//            if (jpgMsg.getByteArr().length > 0) {
-//                addRgbFrame(jpgMsg.getByteArr().clone(), jpgMsg.getWidth(), jpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-//                Log.i(TAG, "addRgbFrame no face");
-//            }
-
             boolean ret = false;
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
@@ -1644,8 +1719,15 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             }
 //            mFacePassHandler.reset();   //reset  不能每送一帧都reset，否则永远无法识别到人脸
             addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+            Log.i(TAG, "addRgbFrame");
             addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
             Log.i(TAG, "addRgbFrame");
+            //插入一帧无人脸图片
+            ImageUtils.JpgMsg jpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
+            if (jpgMsg.getByteArr().length > 0) {
+                addRgbFrame(jpgMsg.getByteArr().clone(), jpgMsg.getWidth(), jpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+            }
         } else {
             Log.e(TAG, "bitmap is null");
         }

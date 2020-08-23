@@ -329,6 +329,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
             public void run() {
                 while (true && !isFinishing()) {
                     while (FacePassHandler.isAvailable()) {
+                        Log.e("config", "is available");
                         Log.d(DEBUG_TAG, "start to build FacePassHandler");
                         FacePassConfig config;
                         try {
@@ -395,6 +396,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                         }
                         return;
                     }
+                    Log.e("config", "is not available");
                     try {
                         /* 如果SDK初始化未完成则需等待 */
                         sleep(500);

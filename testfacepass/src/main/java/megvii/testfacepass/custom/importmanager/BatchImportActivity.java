@@ -145,6 +145,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private static final int MSG_CLEAR = 2;
     private Timer mTimer;
     private long mClearImageCount;
+    private boolean mEnableSetConfig = false;  //标记是否需要在定时器内更改rotation 这里用来检测图片rotation应为0
+    private ImageUtils.JpgMsg mJpgMsg = null;    //缓存无人脸图片数据
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -322,6 +324,15 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                     mClearImageCount--;
                     if (0 == mClearImageCount) {
                         mAndroidHandler.sendEmptyMessage(MSG_CLEAR);  //发消息清空缩略图
+                    }
+                }
+                if (!mEnableSetConfig) {  //调整rotation为0
+                    //调整rotation 从0-->90
+                    if (!modifyRotation()) {
+                        Log.e(TAG, "setConfig failed");
+                    } else {
+                        Log.e(TAG, "setConfig success");
+                        mEnableSetConfig = false;
                     }
                 }
             }
@@ -1332,6 +1343,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             return false;
         }
         FacePassConfig config = mFacePassHandler.getConfig();
+        if (null == config) {
+            Log.e(TAG, "FacePassConfig is null");
+            return false;
+        }
         mCamerarotationBak = config.rotation;
         config.rotation = 0;
         config.livenessEnabled = false;            //关闭活体 红外活体开关与活体开关，是两个独立的功能，同时打开，SDK只会使用一种活体算法，优先使用红外活体检测
@@ -1383,12 +1398,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mFeedFrameThread1.start();
         mRecognizeThread1.isInterrupt = false;
         mRecognizeThread1.start();
-        //调整rotation 从0-->90
-        if (!modifyRotation()) {
-            Log.e(TAG, "setConfig failed");
-        } else {
-            Log.e(TAG, "setConfig success");
-        }
+        mEnableSetConfig = true;  //需要在定时器修改rotation为0
     }
 
     private void stopRecognize() {
@@ -1711,21 +1721,22 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             boolean ret = false;
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
-            Log.i("addface", "bitmapToNv21");
+            Log.i(TAG, "bitmapToNv21");
             byte[] bytes = ImageUtils.bitmapToNv21(bitmap, width, height);
-            Log.i("addface", "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
+            Log.i(TAG, "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
             if (isFacePassHandlerNull()) {
                 return;
             }
-//            mFacePassHandler.reset();   //reset  不能每送一帧都reset，否则永远无法识别到人脸
             addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
             Log.i(TAG, "addRgbFrame");
             addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
             Log.i(TAG, "addRgbFrame");
-            //插入一帧无人脸图片
-            ImageUtils.JpgMsg jpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
-            if (jpgMsg.getByteArr().length > 0) {
-                addRgbFrame(jpgMsg.getByteArr().clone(), jpgMsg.getWidth(), jpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+            //插入无人脸图片
+            if (null == mJpgMsg) {
+                mJpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
+            }
+            if (mJpgMsg.getByteArr().length > 0) {
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
                 Log.i(TAG, "addRgbFrame no face");
             }
         } else {

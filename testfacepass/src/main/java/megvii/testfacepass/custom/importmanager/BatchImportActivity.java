@@ -127,6 +127,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     ArrayBlockingQueue<Boolean> mRecognizeQueue;  //识别成功通知队列
     RecognizeThread1 mRecognizeThread1;
     FeedFrameThread1 mFeedFrameThread1;
+    QueueThread mQueueThread;
     private long mStartTime = 0;
     private boolean mTimeLock = false;
     private final int mCamerarotation = 0;  //照片都是0度，无旋转
@@ -150,6 +151,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private boolean mEnableSetConfig = false;  //标记是否需要在定时器内更改rotation 这里用来检测图片rotation应为0
     private ImageUtils.JpgMsg mJpgMsg = null;    //缓存无人脸图片数据
     private BeepManager beepManager;
+    private ArrayBlockingQueue<ImageData> mImageQueue;  //缓存从httpserver传过来图片信息
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -299,10 +301,12 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //        mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
         mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(60);
         mRecognizeQueue = new ArrayBlockingQueue<Boolean>(1);
+        mImageQueue = new ArrayBlockingQueue<ImageData>(20);
         mFeedFrameResult = new ArrayList<Boolean>(2);
 //        mRecognizeResult = new ArrayList<Boolean>(2);
         mFeedFrameThread1 = new FeedFrameThread1();
         mRecognizeThread1 = new RecognizeThread1();
+        mQueueThread = new QueueThread();
 
         mAndroidHandler = new Handler() {
             @Override
@@ -476,7 +480,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 
     private void msgShow(Object obj) {
         if (null != obj) {
-            mClearImageCount = 10;  //10 * 100ms后清空缩略图
+            mClearImageCount = 100;  //100 * 100ms后清空缩略图
             Bitmap bitmap = null;
             DisplayData displayData = (DisplayData) obj;
             FacePassRecognitionResult result = displayData.getResult();
@@ -1417,6 +1421,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mRecognizeThread1.isInterrupt = false;
         mRecognizeThread1.start();
         mEnableSetConfig = true;  //需要在定时器修改rotation为0
+        mQueueThread.isInterrupt = false;
+        mQueueThread.start();
     }
 
     private void stopRecognize() {
@@ -1424,6 +1430,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mFeedFrameThread1.interrupt();
         mRecognizeThread1.isInterrupt = true;
         mRecognizeThread1.interrupt();
+        mQueueThread.isInterrupt = true;
+        mQueueThread.interrupt();
         //恢复rotation
         if (!resumeRotation()) {
             Log.e(TAG, "setAddFaceConfig failed");
@@ -1683,6 +1691,52 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 + result.detail.mouthOccAttr.mouth_occ_status);
     }
 
+    public class QueueThread extends Thread {
+        private final String QueueThreadTAG = QueueThread.class.getSimpleName();
+        boolean isInterrupt;
+
+        @Override
+        public void run() {
+            while (!isInterrupt) {
+                try {
+                    ImageData data = mImageQueue.take();
+                    long time = System.currentTimeMillis();
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
+                    if (null != bitmap) {  //解码成功
+                        boolean ret = false;
+                        int width = bitmap.getWidth();
+                        int height = bitmap.getHeight();
+                        Log.i(TAG, "bitmapToNv21");
+                        byte[] bytes = ImageUtils.bitmapToNv21(bitmap, width, height);  //bitmap to nv21
+                        Log.i(TAG, "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
+                        if (isFacePassHandlerNull()) {
+                            continue;
+                        }
+                        startFeedFrameRecognize();  //初始化检测和识别相关的数据
+                        mFacePassHandler.reset();   //
+                        addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+                        Log.i(TAG, "addRgbFrame");
+                        addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+                        Log.i(TAG, "addRgbFrame");
+                        mRecognizeQueue.take();  //等待结果
+                        time = System.currentTimeMillis() - time;
+                        Log.e(QueueThreadTAG, "time:" + time + "ms");
+                    } else {
+                        Log.e(TAG, "bitmap is null");
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void interrupt() {
+            isInterrupt = true;
+            super.interrupt();
+        }
+    }
+
     private void startFeedFrameRecognize() {
         mFeedFrameFinish = false;
         mFeedFrameSuccessCount = 0;
@@ -1734,48 +1788,50 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     @Subscribe(threadMode = ThreadMode.ASYNC)
     public void imageProc(ImageData data) {
         Log.i(TAG, "subscribe");
-        //无人脸图片
-        if (null == mJpgMsg) {
-            mJpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
-        }
-        Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
-        if (null != bitmap) {
-            if (mJpgMsg.getByteArr().length > 0) {
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-            }
-            boolean ret = false;
-            int width = bitmap.getWidth();
-            int height = bitmap.getHeight();
-            Log.i(TAG, "bitmapToNv21");
-            byte[] bytes = ImageUtils.bitmapToNv21(bitmap, width, height);
-            Log.i(TAG, "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
-            if (isFacePassHandlerNull()) {
-                return;
-            }
-            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
-            Log.i(TAG, "addRgbFrame");
-            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
-            Log.i(TAG, "addRgbFrame");
+        mImageQueue.offer(data);  //存入缓存队列
 
-            if (mJpgMsg.getByteArr().length > 0) {
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
-                Log.i(TAG, "addRgbFrame no face");
-            }
-        } else {
-            Log.e(TAG, "bitmap is null");
-        }
+        //无人脸图片
+//        if (null == mJpgMsg) {
+//            mJpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
+//        }
+//        Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
+//        if (null != bitmap) {
+//            if (mJpgMsg.getByteArr().length > 0) {
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//            }
+//            boolean ret = false;
+//            int width = bitmap.getWidth();
+//            int height = bitmap.getHeight();
+//            Log.i(TAG, "bitmapToNv21");
+//            byte[] bytes = ImageUtils.bitmapToNv21(bitmap, width, height);
+//            Log.i(TAG, "bitmap2RGB:" + bytes.length + ",width:" + width + ",height:" + height);
+//            if (isFacePassHandlerNull()) {
+//                return;
+//            }
+//            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+//            Log.i(TAG, "addRgbFrame");
+//            addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
+//            Log.i(TAG, "addRgbFrame");
+//
+//            if (mJpgMsg.getByteArr().length > 0) {
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+//                Log.i(TAG, "addRgbFrame no face");
+//            }
+//        } else {
+//            Log.e(TAG, "bitmap is null");
+//        }
     }
 }

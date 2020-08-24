@@ -68,7 +68,7 @@ public class HttpServer extends NanoHTTPD {
             session.parseBody(files);
             Log.i(TAG, "--");
             bodyStr = files.get("postData");  //获取body的json数据https://blog.csdn.net/wan_ing/article/details/80028894
-            LogUtils.i(TAG, "bodyStr:\n" + bodyStr);
+//            LogUtils.i(TAG, "bodyStr:\n" + bodyStr);
             if (null != bodyStr) {
                 Log.i(TAG, "len:" + bodyStr.length());
                 ret = parseJsonString(bodyStr);

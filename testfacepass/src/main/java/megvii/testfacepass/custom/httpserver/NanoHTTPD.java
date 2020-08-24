@@ -1130,7 +1130,6 @@ public abstract class NanoHTTPD {
 
         @Override
         public void parseBody(Map<String, String> files) throws IOException, ResponseException {
-            Log.e(TAG, "-0");
             RandomAccessFile randomAccessFile = null;
             try {
                 long size = getBodySize();
@@ -1138,27 +1137,22 @@ public abstract class NanoHTTPD {
                 DataOutput requestDataOutput = null;
 
                 // Store the request in memory or a file, depending on size
-                if (size < MEMORY_STORE_LIMIT) {Log.e(TAG, "-01");
+                if (size < MEMORY_STORE_LIMIT) {
                     baos = new ByteArrayOutputStream();
                     requestDataOutput = new DataOutputStream(baos);
-                } else {Log.e(TAG, "-02");
+                } else {
                     randomAccessFile = getTmpBucket();
                     requestDataOutput = randomAccessFile;
                 }
-                Log.e(TAG, "-1");
                 // Read all the body and write it to request_data_output
                 byte[] buf = new byte[REQUEST_BUFFER_LEN];
                 while (this.rlen >= 0 && size > 0) {
-                    Log.e(TAG, "-11");
                     this.rlen = this.inputStream.read(buf, 0, (int) Math.min(size, REQUEST_BUFFER_LEN));
                     size -= this.rlen;
                     if (this.rlen > 0) {
-                        Log.e(TAG, "-12 len:" + this.rlen);
                         requestDataOutput.write(buf, 0, this.rlen);
                     }
-                    Log.e(TAG, "-13");
                 }
-                Log.e(TAG, "-2");
                 ByteBuffer fbuf = null;
                 if (baos != null) {
                     fbuf = ByteBuffer.wrap(baos.toByteArray(), 0, baos.size());
@@ -1166,19 +1160,18 @@ public abstract class NanoHTTPD {
                     fbuf = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, randomAccessFile.length());
                     randomAccessFile.seek(0);
                 }
-                Log.e(TAG, "-3");
                 // If the method is POST, there may be parameters
                 // in data section, too, read it:
                 if (Method.POST.equals(this.method)) {
                     ContentType contentType = new ContentType(this.headers.get("content-type"));
-                    if (contentType.isMultipart()) {Log.e(TAG, "-4");
+                    if (contentType.isMultipart()) {
                         String boundary = contentType.getBoundary();
                         if (boundary == null) {
                             throw new ResponseException(Response.Status.BAD_REQUEST,
                                     "BAD REQUEST: Content type is multipart/form-data but boundary missing. Usage: GET /example/file.html");
                         }
                         decodeMultipartFormData(contentType, fbuf, this.parms, files);
-                    } else {Log.e(TAG, "-5");
+                    } else {
                         byte[] postBytes = new byte[fbuf.remaining()];
                         fbuf.get(postBytes);
                         String postLine = new String(postBytes, contentType.getEncoding()).trim();
@@ -1192,12 +1185,12 @@ public abstract class NanoHTTPD {
                             files.put("postData", postLine);
                         }
                     }
-                } else if (Method.PUT.equals(this.method)) {Log.e(TAG, "-");
+                } else if (Method.PUT.equals(this.method)) {
                     files.put("content", saveTmpFile(fbuf, 0, fbuf.limit(), null));
                 }
             } finally {
                 safeClose(randomAccessFile);
-            }Log.e(TAG, "-6");
+            }
         }
 
         /**

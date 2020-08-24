@@ -394,6 +394,7 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             Log.d(DEBUG_TAG, "FacePassHandler is null");
                             return;
                         }
+                        Log.e("config", "finish");
                         return;
                     }
                     Log.e("config", "is not available");

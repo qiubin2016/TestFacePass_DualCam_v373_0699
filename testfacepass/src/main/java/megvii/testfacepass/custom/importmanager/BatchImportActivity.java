@@ -54,6 +54,7 @@ import mcv.facepass.types.FacePassRecognitionResultType;
 import megvii.testfacepass.MainActivity;
 import megvii.testfacepass.R;
 import megvii.testfacepass.camera.CameraPreviewData;
+import megvii.testfacepass.custom.BeepManager;
 import megvii.testfacepass.custom.dataclass.DisplayData;
 import megvii.testfacepass.custom.db.DbOpt;
 import megvii.testfacepass.custom.httpserver.HttpServer;
@@ -145,8 +146,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private static final int MSG_CLEAR = 2;
     private Timer mTimer;
     private long mClearImageCount;
+    private long mSetConfigCount;
     private boolean mEnableSetConfig = false;  //标记是否需要在定时器内更改rotation 这里用来检测图片rotation应为0
     private ImageUtils.JpgMsg mJpgMsg = null;    //缓存无人脸图片数据
+    private BeepManager beepManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -294,7 +297,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 //        mDetectResultQueue = new ArrayBlockingQueue<byte[]>(5);
         mDetectResultQueue = new ArrayBlockingQueue<RecognizeData>(5);
 //        mFeedFrameQueue = new ArrayBlockingQueue<CameraPreviewData>(1);
-        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(10);
+        mFeedFrameQueue = new ArrayBlockingQueue<FeedFrameData>(60);
         mRecognizeQueue = new ArrayBlockingQueue<Boolean>(1);
         mFeedFrameResult = new ArrayList<Boolean>(2);
 //        mRecognizeResult = new ArrayList<Boolean>(2);
@@ -326,20 +329,26 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                         mAndroidHandler.sendEmptyMessage(MSG_CLEAR);  //发消息清空缩略图
                     }
                 }
-                if (!mEnableSetConfig) {  //调整rotation为0
-                    //调整rotation 从0-->90
-                    if (!modifyRotation()) {
-                        Log.e(TAG, "setConfig failed");
-                    } else {
-                        Log.e(TAG, "setConfig success");
-                        mEnableSetConfig = false;
+                if (mEnableSetConfig) {  //调整rotation为0
+                    mSetConfigCount++;
+                    if (mSetConfigCount >= 20) {  //每隔2秒
+                        mSetConfigCount = 0;
+//                        mFacePassHandler = MainActivity.mFacePassHandler;
+                        //调整rotation 从0-->90
+                        if (!modifyRotation()) {
+                            Log.e(TAG, "setConfig failed");
+                        } else {
+                            Log.e(TAG, "setConfig success");
+                            checkGroup();  //检查底库是否存在
+                            mEnableSetConfig = false;
+                        }
                     }
                 }
             }
         };
         mTimer.schedule(task, 0, 100);  //100ms 周期定时器
-
-
+        beepManager = new BeepManager(this);  //声音初始化
+        beepManager.update();
     }
 
     @Override
@@ -476,7 +485,6 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             } catch (FacePassException e) {
                 e.printStackTrace();
             }
-            mImageUser.setImageBitmap(bitmap);  //显示缩略图
             //id score errcode
             final long trackId = result.trackId;
             final float score = result.detail.searchScore;
@@ -493,10 +501,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             if (extScore > 0) {
 //                text += "戴口罩识别分: " + extScore + "\n";
             }
-            if (0 != errCode) {
-                text += "错误码: " + errCode + "\n";
+            if (0 == errCode) {
+                text += "识别成功！\n";
+                mTextResult.setText(text);
+                mImageUser.setImageBitmap(bitmap);  //显示缩略图
+                //提示音(如果不增加close()和update()在视美泰rk3288上会出现连续播放，第一次响，第二次不响，第三次响，第四次不响...)
+                beepManager.close();
+                beepManager.update();
+                beepManager.playBeepSoundAndVibrate();
+            } else {
+                text += "识别失败: " + errCode + "\n";
             }
-            mTextResult.setText(text);
+
             /*
                     Log.e(TAG, "err code:" + result.facePassRecognizeErrorCode + ",track id:" + result.trackId
                     + ",type:" + result.facePassRecognitionResultType);
@@ -771,7 +787,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                                 final int widthPic = bitmap.getWidth();
                                 final int heightPic = bitmap.getHeight();
                                 Log.i(TAG, "width:" + widthPic + ",height:" + heightPic);
-                                if ((widthPic <= WIDTH_MAX) && (heightPic <= HEIGHT_MAX)) {  //检查照片分辨率
+                                if (true/*(widthPic <= WIDTH_MAX) && (heightPic <= HEIGHT_MAX)*/) {  //检查照片分辨率
                                     try {
                                         boolean isExist = false;
 //                                        isExist = isFaceExist(mFacePassHandler, bitmap, widthPic, heightPic, picName);  //图片是否有人脸，是否在人脸库中
@@ -824,6 +840,8 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                                         e.printStackTrace();
                                         toast(e.getMessage());
                                     }
+                                } else {
+                                    Log.e(TAG, "分辨率不符合要求！ " + imageFile.getName());
                                 }
                                 // 保存图片到失败目录中
                                 saveBitmaptoDirectory(FileUtils.getBatchImportFailedDirectory(), picName, bitmap);
@@ -1716,8 +1734,22 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     @Subscribe(threadMode = ThreadMode.ASYNC)
     public void imageProc(ImageData data) {
         Log.i(TAG, "subscribe");
+        //无人脸图片
+        if (null == mJpgMsg) {
+            mJpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
+        }
         Bitmap bitmap = BitmapFactory.decodeByteArray(data.getByteArr(), 0, data.getByteArr().length);  //解码
         if (null != bitmap) {
+            if (mJpgMsg.getByteArr().length > 0) {
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+            }
             boolean ret = false;
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
@@ -1731,11 +1763,14 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
             Log.i(TAG, "addRgbFrame");
             addRgbFrame(bytes.clone(), width, height, String.valueOf(data.getId()));  //插入一帧
             Log.i(TAG, "addRgbFrame");
-            //插入无人脸图片
-            if (null == mJpgMsg) {
-                mJpgMsg = ImageUtils.readJpgFileToByteArray("/storage/emulated/0/MyImage/empty2.jpg");
-            }
+
             if (mJpgMsg.getByteArr().length > 0) {
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
+                addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
+                Log.i(TAG, "addRgbFrame no face");
                 addRgbFrame(mJpgMsg.getByteArr().clone(), mJpgMsg.getWidth(), mJpgMsg.getHeight(), String.valueOf(data.getId() + 10000));
                 Log.i(TAG, "addRgbFrame no face");
             }

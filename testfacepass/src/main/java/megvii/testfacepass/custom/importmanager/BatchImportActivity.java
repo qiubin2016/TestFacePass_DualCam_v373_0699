@@ -78,7 +78,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private Toast toast;
 
     // view
-    private EditText mFaceImagePath;
+    private EditText mFaceImagePath, mEtApiDel, mEtApiQuery, mEtApiRegister, mEtApiRegisterRoomNum;
     private Button mBtnDetectFace;
     private Button mBtnChoosePic;
     private ImageView mImageUser;
@@ -94,7 +94,7 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     private Button mButtonImport;
     private Button mBtnTest;
     private Button mBtnExtract;
-    private Button mBtnDbAdd, mBtnDbDelete, mBtnDbUpdate, mBtnDbQuery;
+    private Button mBtnDbAdd, mBtnDbDelete, mBtnDbUpdate, mBtnDbQuery, mBtnApiDelRegister, mBtnApiDel, mBtnApiRegister, mBtnApiQuery;
     private RelativeLayout mRelativeContent;    // 显示说明的布局
     private RelativeLayout mRelativeImport;     // 显示进度的布局
     private RelativeLayout mRelativeFinish;     // 显示结果的布局
@@ -223,6 +223,10 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
 
     private void initView() {
         mFaceImagePath = (EditText) findViewById(R.id.et_face_image_path);
+        mEtApiDel = (EditText) findViewById(R.id.et_api_del);
+        mEtApiQuery = (EditText) findViewById(R.id.et_api_query);
+        mEtApiRegister = (EditText) findViewById(R.id.et_api_register);
+        mEtApiRegisterRoomNum = (EditText) findViewById(R.id.et_api_register_roomNum);
         mBtnDetectFace = (Button) findViewById(R.id.btn_detect_face);
         mBtnDetectFace.setOnClickListener(this);
         mBtnChoosePic = (Button) findViewById(R.id.btn_choose_picture);
@@ -264,6 +268,14 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
         mBtnDbUpdate.setOnClickListener(this);
         mBtnDbQuery = (Button) findViewById(R.id.btn_db_query);  //数据库查询数据按钮
         mBtnDbQuery.setOnClickListener(this);
+        mBtnApiDelRegister = (Button) findViewById(R.id.btn_api_del_register);  //数据库查询数据按钮
+        mBtnApiDelRegister.setOnClickListener(this);
+        mBtnApiDel = (Button) findViewById(R.id.btn_api_del);  //数据库查询数据按钮
+        mBtnApiDel.setOnClickListener(this);
+        mBtnApiRegister = (Button) findViewById(R.id.btn_api_register);  //数据库查询数据按钮
+        mBtnApiRegister.setOnClickListener(this);
+        mBtnApiQuery = (Button) findViewById(R.id.btn_api_query);  //数据库查询数据按钮
+        mBtnApiQuery.setOnClickListener(this);
         mRelativeContent = (RelativeLayout) findViewById(R.id.relative_content);
         mRelativeImport = (RelativeLayout) findViewById(R.id.relative_progress);
         mRelativeFinish = (RelativeLayout) findViewById(R.id.relative_finish);
@@ -416,6 +428,18 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
                 break;
             case R.id.btn_db_query:
                 dbQuery();
+                break;
+            case R.id.btn_api_del_register:  //api 删除并注册
+                apiDelRegister();
+                break;
+            case R.id.btn_api_del:
+                apiDel();
+                break;
+            case R.id.btn_api_register:
+                apiRegister();
+                    break;
+            case R.id.btn_api_query:
+                apiQuery();
                 break;
             case R.id.btn_import_back:
                 // 释放
@@ -1763,6 +1787,62 @@ public class BatchImportActivity extends BaseActivity implements View.OnClickLis
     }
     private void dbQuery() {
         DbOpt.Companion.query();
+    }
+
+    private void apiDelRegister() {
+        apiDel();
+        apiRegister();
+
+    }
+    private void apiDel() {
+        String userId = mEtApiDel.getText().toString();
+        if (TextUtils.isEmpty(userId)) {
+            toast("请输入正确的userId！");
+            return;
+        }
+        new Thread(() -> {
+            UserManager.logOffUser(userId);  //注销
+        }).start();
+    }
+
+    private void apiRegister() {
+        String phoneNum = mEtApiRegister.getText().toString();
+        if (TextUtils.isEmpty(phoneNum)) {
+            toast("请输入正确的phoneNum！");
+            return;
+        }
+        String imagePath = mFaceImagePath.getText().toString();
+        if (TextUtils.isEmpty(imagePath)) {
+            toast("请输入正确的图片路径！");
+            return;
+        }
+        String roomNum = mEtApiRegisterRoomNum.getText().toString();
+        if (TextUtils.isEmpty(imagePath)) {
+            toast("请输入正确的roomNum！");
+            return;
+        }
+        new Thread(() -> {
+            UserManager.getBuildList();  //获取楼栋id
+            UserManager.getUnitList();  //获取单元id
+            UserManager.getRoomList();  //获取房间id
+            String userId = UserManager.addUserBindRoom(phoneNum, imagePath, roomNum);  //注册
+            runOnUiThread(() -> {
+                mEtApiDel.setText(userId);
+            });
+        }).start();
+    }
+    private void apiQuery() {
+        String phoneNum = mEtApiQuery.getText().toString();
+        if (TextUtils.isEmpty(phoneNum)) {
+            toast("请输入正确的phoneNum！");
+            return;
+        }
+        new Thread(() -> {
+            String userId = UserManager.getUserInfo(phoneNum);  //查询
+            runOnUiThread(() -> {
+                mEtApiDel.setText(userId);
+            });
+        }).start();
     }
 
     private void detectFace() {

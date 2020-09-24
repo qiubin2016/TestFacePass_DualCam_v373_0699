@@ -366,8 +366,9 @@ public class MainActivity extends Activity implements CameraManager.CameraListen
                             config.rgbIrLivenessEnabled = true;        //打开红外活体功能
 
                             ageGenderEnabledGlobal = (config.ageGenderModel != null);
-                            config.faceMinThreshold = 100;             //最小人脸尺寸100*100
-                            config.poseThreshold = new FacePassPose(30f, 30f, 30f);  //旋转角度、垂直角度、水平角度
+                            config.faceMinThreshold = 80;  //100;             //最小人脸尺寸100*100
+//                            config.poseThreshold = new FacePassPose(30f, 30f, 30f);  //旋转角度、垂直角度、水平角度
+                            config.poseThreshold = new FacePassPose(50f, 50f, 50f);
                             config.blurThreshold = 0.8f;               //模糊阈值
                             config.lowBrightnessThreshold = 70f;
                             config.highBrightnessThreshold = 210f;     //人脸平均照度阈值范围

@@ -2,7 +2,9 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="@color/white"
+    android:focusable="false"
+    android:focusableInTouchMode="true">
 
     <RelativeLayout
         android:id="@+id/relative_title"
@@ -101,8 +103,108 @@
             android:layout_toLeftOf="@id/btn_choose_picture"
             android:background="@drawable/shape_bg_rect"
             android:focusable="false"
-            android:text="/sdcard/test3.jpeg"
+            android:text="/sdcard/DCIM/Camera/qiub005.jpg"
             android:hint="添加图片地址" />
+
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/relative_api_del"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="2dp"
+        android:layout_below="@+id/relative_edit">
+        <Button
+            android:id="@+id/btn_api_del"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:background="@drawable/shape_btn_bg_blue"
+            android:text="删除"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/et_api_del"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/btn_api_del"
+            android:layout_alignTop="@id/btn_api_del"
+            android:layout_toLeftOf="@id/btn_api_del"
+            android:background="@drawable/shape_bg_rect"
+            android:hint="userId" />
+
+    </RelativeLayout>
+    <RelativeLayout
+    android:id="@+id/relative_api_query"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="2dp"
+    android:layout_below="@+id/relative_api_del">
+    <Button
+        android:id="@+id/btn_api_query"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:background="@drawable/shape_btn_bg_blue"
+        android:text="查询"
+        android:textColor="@android:color/white" />
+
+    <EditText
+        android:id="@+id/et_api_query"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/btn_api_query"
+        android:layout_alignTop="@id/btn_api_query"
+        android:layout_toLeftOf="@id/btn_api_query"
+        android:background="@drawable/shape_bg_rect"
+        android:text="13620991158"
+        android:digits="1234567890"
+        android:inputType="numberDecimal"
+        android:hint="phoneNum" />
+
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/relative_api_register"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="2dp"
+        android:layout_below="@+id/relative_api_query">
+        <Button
+            android:id="@+id/btn_api_register"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:background="@drawable/shape_btn_bg_blue"
+            android:text="注册"
+            android:textColor="@android:color/white" />
+
+        <EditText
+            android:id="@+id/et_api_register"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/btn_api_register"
+            android:layout_alignTop="@id/btn_api_register"
+            android:layout_toLeftOf="@id/btn_api_register"
+            android:background="@drawable/shape_bg_rect"
+            android:text="13620991158"
+            android:digits="1234567890"
+            android:inputType="numberDecimal"
+            android:hint="phoneNum" />
+
+        <EditText
+            android:id="@+id/et_api_register_roomNum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/btn_api_register"
+            android:layout_alignTop="@id/btn_api_register"
+            android:layout_toLeftOf="@id/et_api_register"
+            android:background="@drawable/shape_bg_rect"
+            android:text="901"
+            android:digits="1234567890"
+            android:inputType="numberDecimal"
+            android:hint="roomNum" />
 
     </RelativeLayout>
 
@@ -467,6 +569,20 @@
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
         android:text="查"
+        android:textColor="#fff"
+        android:textSize="16sp" />
+<!--**************************************************-->
+    <Button
+        android:id="@+id/btn_api_del_register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn_db_add"
+        android:layout_marginLeft="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@drawable/fillet_style_button_selector"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:text="删除及注册"
         android:textColor="#fff"
         android:textSize="16sp" />
 

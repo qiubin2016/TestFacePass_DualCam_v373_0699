@@ -2,6 +2,7 @@ package megvii.testfacepass.custom.importmanager;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSONArray;
@@ -33,13 +34,14 @@ public class UserManager {
     private static final String TAG = UserManager.class.getSimpleName();
     private static final String REQUEST_URL = "http://sdk.api.jia-r.com";
     private static final String REQUEST_URL_TEST = "http://test.sdk.api.jia-r.com";
-    private static final String URL_LOGIN = "/sdk/cloud/base/developerLogin";
-    private static final String URL_GETBUILDLIST = "/sdk/cloud/base/getBuildList";
-    private static final String URL_GETUNITLIST = "/sdk/cloud/base/getUnitList";
-    private static final String URL_GETROOMLIST = "/sdk/cloud/base/getRoomList";
-    private static final String URL_ADDUSERBINDROOM = "/sdk/cloud/face/addUserBindRoom";
-    private static final String URL_UPDATEUSERINFO = "/sdk/cloud/face/updateUserInfo";
-    private static final String URL_GETUSERINFO = "/sdk/cloud/face/getUserInfo";
+    private static final String URL_LOGIN = "/sdk/cloud/base/developerLogin";         //2.1 SDK开发者认证
+    private static final String URL_GETBUILDLIST = "/sdk/cloud/base/getBuildList";    //2.9查询项目的楼栋信息列表
+    private static final String URL_GETUNITLIST = "/sdk/cloud/base/getUnitList";      //2.10查询项目的单元列表
+    private static final String URL_GETROOMLIST = "/sdk/cloud/base/getRoomList";      //2.11查询项目的房间列表
+    private static final String URL_ADDUSERBINDROOM = "/sdk/cloud/face/addUserBindRoom";  //2.8添加用户并绑定房间的关系
+    private static final String URL_UPDATEUSERINFO = "/sdk/cloud/face/updateUserInfo";  //2.12修改用户信息
+    private static final String URL_GETUSERINFO = "/sdk/cloud/face/getUserInfo";  //2.16查询用户列表
+    private static final String URL_LOGOFFUSER = "/sdk/cloud/face/logOffUser";  //2.21 注销
 
     private static final String APP_ID = "978887645289676800";
     private static final String APP_SECRET = "5E6C5A3B5A720340";
@@ -97,7 +99,6 @@ public class UserManager {
         }
         return encryptResult;
     }
-
     /**
      * {"msgCode":0,"msg":"成功","requestId":"d95a48f764074d22b244dea0482044e7","timestamp":"1595742748112","sign":"dce155276195e6c580ce12f807e778f6","data":{"token":"ORW73TTUasPSkwlVDgR3Kys+kSKoR8b6yVPb9ECBl20JUqDJjNERoKRnR4ktUeKnAITlPiKHvDftBvU9hcoSEg=="}}
      * {
@@ -183,7 +184,7 @@ public class UserManager {
             login();  //登录获取token
         }
         Log.i(TAG, "=====================postToServer1");
-        String encryptResult = getInputParam(null, param);  //入参处理
+        String encryptResult = getInputParam(appSecret, param);  //入参处理
         Log.i(TAG, "encryptResult:" + encryptResult);
         String encrypScript = Newexample.sendPost(url,
                 "token=" + mToken + "&encryptScript=" + encryptResult.replaceAll("\\+","%2B"));
@@ -205,6 +206,10 @@ public class UserManager {
      */
     public static void getBuildList() {
         String result;
+        if (!TextUtils.isEmpty(mBuildId)) {
+            Log.e(TAG, "mBuildId:" + mBuildId);
+            return;
+        }
         result = postToServer(REQUEST_URL_TEST + URL_GETBUILDLIST,
                 null,
                 getBuildUnitRoomParam("001", null, null, "1", "15"));
@@ -215,14 +220,18 @@ public class UserManager {
                 Log.i(TAG, "msgCode:" + msgCode);
                 if (0 == msgCode) {  //成功
                     JSONObject dataObj = object.getJSONObject("data");
-                    Log.i(TAG, "data:" + dataObj.toString());
-                    JSONArray rowsArr = dataObj.getJSONArray("rows");
-                    Log.i(TAG, "rows:" + rowsArr.toString());
-                    for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
-                        JSONObject jsonObj = (JSONObject) itr.next();
-                        mBuildId = jsonObj.getString("buildId");
-                        Log.i(TAG, "buildId:" + mBuildId);
-                        break;  //只取第1个数组元素
+                    if (null != dataObj) {
+                        Log.i(TAG, "data:" + dataObj.toString());
+                        JSONArray rowsArr = dataObj.getJSONArray("rows");
+                        if (null != rowsArr) {
+                            Log.i(TAG, "rows:" + rowsArr.toString());
+                            for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
+                                JSONObject jsonObj = (JSONObject) itr.next();
+                                mBuildId = jsonObj.getString("buildId");
+                                Log.i(TAG, "buildId:" + mBuildId);
+                                break;  //只取第1个数组元素
+                            }
+                        }
                     }
                 }
             }
@@ -237,6 +246,10 @@ public class UserManager {
      */
     public static void getUnitList() {
         String result;
+        if (!TextUtils.isEmpty(mUnitId)) {
+            Log.e(TAG, "mUnitId:" + mUnitId);
+            return;
+        }
         result = postToServer(REQUEST_URL_TEST + URL_GETUNITLIST,
                 null,
                 getBuildUnitRoomParam("001", "01", null, "1", "15"));
@@ -247,14 +260,18 @@ public class UserManager {
                 Log.i(TAG, "msgCode:" + msgCode);
                 if (0 == msgCode) {  //成功
                     JSONObject dataObj = object.getJSONObject("data");
-                    Log.i(TAG, "data:" + dataObj.toString());
-                    JSONArray rowsArr = dataObj.getJSONArray("rows");
-                    Log.i(TAG, "rows:" + rowsArr.toString());
-                    for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
-                        JSONObject jsonObj = (JSONObject) itr.next();
-                        mUnitId = jsonObj.getString("unitId");
-                        Log.i(TAG, "unitId:" + mUnitId);
-                        break;  //只取第1个数组元素
+                    if (null != dataObj) {
+                        Log.i(TAG, "data:" + dataObj.toString());
+                        JSONArray rowsArr = dataObj.getJSONArray("rows");
+                        if (null != rowsArr) {
+                            Log.i(TAG, "rows:" + rowsArr.toString());
+                            for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
+                                JSONObject jsonObj = (JSONObject) itr.next();
+                                mUnitId = jsonObj.getString("unitId");
+                                Log.i(TAG, "unitId:" + mUnitId);
+                                break;  //只取第1个数组元素
+                            }
+                        }
                     }
                 }
             }
@@ -291,9 +308,13 @@ public class UserManager {
      */
     public static void getRoomList() {
         String result;
+        if (!TextUtils.isEmpty(mRoomId)) {
+            Log.e(TAG, "mRoomId:" + mRoomId);
+            return;
+        }
         result = postToServer(REQUEST_URL_TEST + URL_GETROOMLIST,
                 null,
-                getBuildUnitRoomParam("001", "01", "0204", "1", "15"));
+                getBuildUnitRoomParam("001", "01", "0901", "1", "15"));
         if ((null != result) && (!result.isEmpty())) {
             JSONObject object = JSONObject.parseObject(result);
             if (null != object) {
@@ -301,14 +322,18 @@ public class UserManager {
                 Log.i(TAG, "msgCode:" + msgCode);
                 if (0 == msgCode) {  //成功
                     JSONObject dataObj = object.getJSONObject("data");
-                    Log.i(TAG, "data:" + dataObj.toString());
-                    JSONArray rowsArr = dataObj.getJSONArray("rows");
-                    Log.i(TAG, "rows:" + rowsArr.toString());
-                    for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
-                        JSONObject jsonObj = (JSONObject) itr.next();
-                        mRoomId = jsonObj.getString("roomId");
-                        Log.i(TAG, "roomId:" + mRoomId);
-                        break;  //只取第1个数组元素
+                    if (null != dataObj) {
+                        Log.i(TAG, "data:" + dataObj.toString());
+                        JSONArray rowsArr = dataObj.getJSONArray("rows");
+                        if (null != rowsArr) {
+                            Log.i(TAG, "rows:" + rowsArr.toString());
+                            for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
+                                JSONObject jsonObj = (JSONObject) itr.next();
+                                mRoomId = jsonObj.getString("roomId");
+                                Log.i(TAG, "roomId:" + mRoomId);
+                                break;  //只取第1个数组元素
+                            }
+                        }
                     }
                 }
             }
@@ -340,10 +365,11 @@ public class UserManager {
 
         return obj;
     }
-    public static void addUserBindRoom() {
+    public static String addUserBindRoom(String phoneNum, String imagePath, String roomNum) {
         String image = "";
+        String userId = "";
         byte[] bytes;
-        Bitmap bitmap = BitmapFactory.decodeFile("/sdcard/Face-Import/zhu01.jpg");
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);  //"/sdcard/DCIM/Camera/qiub005.jpg"
         if (null != bitmap) {
             bytes = ImageUtils.Bitmap2Bytes(bitmap);
             try {
@@ -352,10 +378,11 @@ public class UserManager {
                 e.printStackTrace();
             }
         }
+        Log.e(TAG, "buildId:" + mBuildId + ",unitId:" + mUnitId + ",roomId:" + mRoomId);
         String result;
         result = postToServer(REQUEST_URL_TEST + URL_ADDUSERBINDROOM,
                 null,
-                getAddUserBindRoomParam("13300000007", "qb1", 1, mBuildId, mUnitId, mRoomId, "0204",
+                getAddUserBindRoomParam(phoneNum, phoneNum, 1, mBuildId, mUnitId, mRoomId, roomNum,
                         2, image));
         if ((null != result) && (!result.isEmpty())) {
             JSONObject object = JSONObject.parseObject(result);
@@ -364,18 +391,15 @@ public class UserManager {
                 Log.i(TAG, "msgCode:" + msgCode);
                 if (0 == msgCode) {  //成功
                     JSONObject dataObj = object.getJSONObject("data");
-                    Log.i(TAG, "data:" + dataObj.toString());
-                    JSONArray rowsArr = dataObj.getJSONArray("rows");
-                    Log.i(TAG, "rows:" + rowsArr.toString());
-                    for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
-                        JSONObject jsonObj = (JSONObject) itr.next();
-                        mRoomId = jsonObj.getString("roomId");
-                        Log.i(TAG, "roomId:" + mRoomId);
-                        break;  //只取第1个数组元素
+                    if (null != dataObj) {
+                        Log.i(TAG, "data:" + dataObj.toString());
+                        userId = dataObj.getString("userId");
+                        Log.i(TAG, "userId:" + userId);
                     }
                 }
             }
         }
+        return userId;
     }
 
     /**
@@ -460,11 +484,56 @@ public class UserManager {
 
         return obj;
     }
-    public static void getUserInfo() {
+    public static String getUserInfo(String phoneNum) {
         String result;
+        String userId = "";
         result = postToServer(REQUEST_URL_TEST + URL_GETUSERINFO,
                 null,
-                getUserInfoParam(null, null, "13300000007", null, null));
+                getUserInfoParam(null, null, phoneNum, null, null));
+        if ((null != result) && (!result.isEmpty())) {
+            JSONObject object = JSONObject.parseObject(result);
+            if (null != object) {
+                int msgCode = object.getInteger("msgCode");
+                Log.i(TAG, "msgCode:" + msgCode);
+                if (0 == msgCode) {  //成功
+                    JSONObject dataObj = object.getJSONObject("data");
+                    if (null != dataObj) {
+                        Log.i(TAG, "data:" + dataObj.toString());
+                        JSONArray rowsArr = dataObj.getJSONArray("rows");
+                        if (null != rowsArr) {
+                            Log.i(TAG, "rows:" + rowsArr.toString());
+                            for (Iterator itr = rowsArr.iterator(); itr.hasNext();) {
+                                JSONObject jsonObj = (JSONObject) itr.next();
+                                userId = jsonObj.getString("userId");
+                                Log.i(TAG, "userId:" + userId);
+                                break;  //只取第1个数组元素
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return userId;
+    }
+
+    /**
+     * http://app.api.jar-r.com/faceRecognition/deviceUpdate
+     * deviceUnique: 0000006040008
+     */
+    public static void deviceUpdate() {
+
+    }
+    /**
+     * userId	String	Y	用户编号
+     */
+    public static void logOffUser(String userId) {
+        String result;
+
+        JSONObject obj = new JSONObject();
+        obj.put("userId", userId);
+        result = postToServer(REQUEST_URL_TEST + URL_LOGOFFUSER,
+                null,
+                obj);
         if ((null != result) && (!result.isEmpty())) {
             JSONObject object = JSONObject.parseObject(result);
             if (null != object) {

@@ -353,15 +353,29 @@ public class UserManager {
     public static JSONObject getAddUserBindRoomParam(String phoneNum, String name, int gender, String buildId, String unitId, String roomId,
                                                      String roomNum, int houserType, String image) {
         JSONObject obj = new JSONObject();
-        obj.put("phoneNum", phoneNum);
-        obj.put("realName", name);
+        if (null != phoneNum) {
+            obj.put("phoneNum", phoneNum);
+        }
+        if (null != name) {
+            obj.put("realName", name);
+        }
         obj.put("gender", gender);
-        obj.put("buildId", buildId);
-        obj.put("unitId", unitId);
-        obj.put("roomId", roomId);
-        obj.put("roomNum", roomNum);
+        if (null != buildId) {
+            obj.put("buildId", buildId);
+        }
+        if (null != unitId) {
+            obj.put("unitId", unitId);
+        }
+        if (null != roomId) {
+            obj.put("roomId", roomId);
+        }
+        if (null != roomNum) {
+            obj.put("roomNum", roomNum);
+        }
         obj.put("houserType", houserType);
-        obj.put("imageStr", image);
+        if (null != image) {
+            obj.put("imageStr", image);
+        }
 
         return obj;
     }
@@ -401,7 +415,6 @@ public class UserManager {
         }
         return userId;
     }
-
     /**
      * userId	String	Y	用户编号
      * realName	String	Y	姓名
